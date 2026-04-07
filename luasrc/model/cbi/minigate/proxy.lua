@@ -5,7 +5,7 @@ local uc = require "luci.model.uci".cursor()
 m = Map("minigate", "MiniGate - 反向代理", "保存后自动生效。")
 
 m.on_after_commit = function(self)
-    sys.call("/bin/sh /usr/lib/minigate/proxy.sh reload >/dev/null 2>&1 &")
+    sys.call("sleep 1 && /bin/sh /usr/lib/minigate/proxy.sh reload >/dev/null 2>&1 &")
 end
 
 local ddns_domains = {}
@@ -38,7 +38,10 @@ s.addremove = true
 s.template = "cbi/tblsection"
 s.sectionhead = "名称"
 
-o = s:option(Flag, "enabled", "启用")
+o = s:option(ListValue, "enabled", "启用")
+o:value("1", "✓ 启用")
+o:value("0", "✗ 禁用")
+o.default = "1"
 o.rmempty = false
 
 o = s:option(ListValue, "domain", "域名")
@@ -52,13 +55,17 @@ o.rmempty = false
 
 o = s:option(Value, "listen_port", "监听端口")
 o.datatype = "port"
-o.default = "443"
+o.default = "2000"
+o.rmempty = false
 
-o = s:option(Flag, "ssl", "HTTPS")
+o = s:option(ListValue, "ssl", "HTTPS")
+o:value("1", "✓ 开启")
+o:value("0", "✗ 关闭")
 o.default = "1"
+o.rmempty = false
 
 -- ================================
--- 子域名规则（横向表格）
+-- 子域名规则
 -- ================================
 s = m:section(TypedSection, "subproxy", "子域名规则")
 s.anonymous = true
@@ -85,6 +92,7 @@ o.placeholder = "192.168.1.100"
 o = s:option(Value, "target_port", "端口")
 o.datatype = "port"
 o.default = "80"
+o.rmempty = false
 
 o = s:option(DummyValue, "_final", "实际域名")
 o.rawhtml = true
@@ -112,9 +120,11 @@ s.template = "cbi/tblsection"
 s.sortable = true
 s.sectionhead = "名称"
 
-o = s:option(Flag, "enabled", "启用")
+o = s:option(ListValue, "enabled", "启用")
+o:value("1", "✓ 启用")
+o:value("0", "✗ 禁用")
+o.default = "1"
 o.rmempty = false
-o.width = "50px"
 
 o = s:option(ListValue, "domain", "域名")
 o:value("", "-- 请选择 --")
@@ -128,6 +138,7 @@ o.rmempty = false
 o = s:option(Value, "listen_port", "端口")
 o.datatype = "port"
 o.default = "443"
+o.rmempty = false
 
 o = s:option(Value, "target_addr", "目标地址")
 o.rmempty = false
@@ -136,12 +147,19 @@ o.placeholder = "192.168.1.100"
 o = s:option(Value, "target_port", "目标端口")
 o.datatype = "port"
 o.default = "80"
+o.rmempty = false
 
-o = s:option(Flag, "ssl", "HTTPS")
+o = s:option(ListValue, "ssl", "HTTPS")
+o:value("1", "✓ 开启")
+o:value("0", "✗ 关闭")
 o.default = "1"
+o.rmempty = false
 
-o = s:option(Flag, "websocket", "WS")
+o = s:option(ListValue, "websocket", "WS")
+o:value("0", "✗ 关闭")
+o:value("1", "✓ 开启")
 o.default = "0"
+o.rmempty = false
 
 end -- normal_domains
 

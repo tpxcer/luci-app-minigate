@@ -37,9 +37,10 @@ function action_status()
     -- 获取通配符监听端口
     local wc_ports = {}
     uci:foreach("minigate","proxy_wildcard",function(s)
-        if s.enabled == "1" and s.domain then
+        if (s.enabled == "1" or s.enabled == true) and s.domain then
             local base = (s.domain or ""):gsub("^%*%.","")
-            wc_ports[base] = {port=s.listen_port or "443", ssl=s.ssl or "0"}
+            local ssl_val = tostring(s.ssl or "0")
+            wc_ports[base] = {port=s.listen_port or "443", ssl=ssl_val}
         end
     end)
     -- 子域名规则
@@ -51,16 +52,16 @@ function action_status()
         if prefix ~= "" and parent ~= "" then
             local wc = wc_ports[parent] or {}
             local lport = wc.port or "443"
-            local ssl = wc.ssl or "0"
-            local scheme = ssl == "1" and "https" or "http"
+            local ssl_val = wc.ssl or "0"
+            local scheme = (ssl_val == "1" or ssl_val == "true") and "https" or "http"
             proxy_rules[#proxy_rules+1] = {domain=prefix.."."..parent, target=taddr..":"..tport, listen_port=lport, scheme=scheme}
         end
     end)
     -- 普通代理规则
     uci:foreach("minigate","proxy",function(s)
-        if s.enabled == "1" and s.domain and s.target_addr then
-            local ssl = s.ssl or "0"
-            local scheme = ssl == "1" and "https" or "http"
+        if (s.enabled == "1" or s.enabled == true) and s.domain and s.target_addr then
+            local ssl_val = tostring(s.ssl or "0")
+            local scheme = (ssl_val == "1" or ssl_val == "true") and "https" or "http"
             proxy_rules[#proxy_rules+1] = {domain=s.domain, target=(s.target_addr or "")..":"..(s.target_port or "80"), listen_port=s.listen_port or "443", scheme=scheme}
         end
     end)

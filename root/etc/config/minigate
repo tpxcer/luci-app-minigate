@@ -1,5 +1,6 @@
 config global 'global'
 	option enabled '0'
+	option ipv6_listen '0'
 
 config acme 'acme'
 	option enabled '0'

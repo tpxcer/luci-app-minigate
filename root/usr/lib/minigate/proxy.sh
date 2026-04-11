@@ -22,6 +22,17 @@ http {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers off;
     ssl_session_cache shared:SSL:10m;
+    log_format minigate_json escape=json
+        '{"time":"$time_iso8601",'
+        '"domain":"$server_name",'
+        '"client":"$remote_addr",'
+        '"method":"$request_method",'
+        '"uri":"$request_uri",'
+        '"status":$status,'
+        '"size":$body_bytes_sent,'
+        '"referer":"$http_referer",'
+        '"ua":"$http_user_agent"}';
+    access_log /var/log/minigate-access.log minigate_json;
     include /etc/minigate/nginx/sites/*.conf;
 }
 EOF
@@ -47,19 +58,45 @@ check_h2() {
     [ "${m:-0}" -ge 25 ] && echo "new" || echo "old"
 }
 
-# 写一个完整的 server block（带 proxy_pass）
+# 读取全局 IPv6 监听设置
+get_ipv6_listen() {
+    local v6=$(uci -q get minigate.global.ipv6_listen)
+    echo "${v6:-0}"
+}
+
+# 写一个完整的 server block（带 proxy_pass），同时支持 IPv6
 write_server() {
     local conf="$1" domain="$2" lport="$3" taddr="$4" tport="$5" ssl="$6" h2="$7" ws="$8" h2s="$9"
-    log "生成: $domain:${lport} -> ${taddr}:${tport}"
+    shift 9
+    local ipv6_listen="${1:-0}"
 
-    local ll="listen ${lport}"; local ex=""
+    log "生成: $domain:${lport} -> ${taddr}:${tport} (ipv6=$ipv6_listen)"
+
+    local ll="listen ${lport}"; local ll6=""; local ex=""
     [ "$ssl" = "1" ] && ll="${ll} ssl"
+
+    # IPv6 listen
+    if [ "$ipv6_listen" = "1" ]; then
+        ll6="listen [::]:${lport}"
+        [ "$ssl" = "1" ] && ll6="${ll6} ssl"
+    fi
+
     # HTTPS 模式自动启用 HTTP/2
-    if [ "$ssl" = "1" ]; then [ "$h2s" = "new" ] && ex="    http2 on;" || ll="${ll} http2"; fi
+    if [ "$ssl" = "1" ]; then
+        if [ "$h2s" = "new" ]; then
+            ex="    http2 on;"
+        else
+            ll="${ll} http2"
+            [ -n "$ll6" ] && ll6="${ll6} http2"
+        fi
+    fi
 
     cat >> "$conf" <<SEOF
 server {
     ${ll};
+SEOF
+    [ -n "$ll6" ] && echo "    ${ll6};" >> "$conf"
+    cat >> "$conf" <<SEOF
     server_name ${domain};
 ${ex}
 SEOF
@@ -71,9 +108,14 @@ SEOF
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 SEOF
     fi
+
+    # 判断目标地址是否为 IPv6
+    local target_host="$taddr"
+    echo "$taddr" | grep -q ':' && target_host="[${taddr}]"
+
     cat >> "$conf" <<SEOF
     location / {
-        proxy_pass http://${taddr}:${tport};
+        proxy_pass http://${target_host}:${tport};
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -93,6 +135,7 @@ generate_sites() {
     rm -f "$SITES_DIR"/*.conf
     local h2s=$(check_h2)
     local idx=0
+    local ipv6_listen=$(get_ipv6_listen)
 
     # === 通配符域名设置 (proxy_wildcard sections) ===
     local wc_sections=$(uci -q show minigate | grep '=proxy_wildcard$' | cut -d. -f2 | cut -d= -f1)
@@ -105,7 +148,7 @@ generate_sites() {
         local ssl=$(uci -q get minigate.${sec}.ssl); ssl=${ssl:-0}
         local base=$(echo "$domain" | sed 's/^\*\.//')
         echo "${lport}|${ssl}" > "/tmp/minigate_proxy_${base}.tmp"
-        log "通配符: $domain (端口:$lport https:$ssl)"
+        log "通配符: $domain (端口:$lport https:$ssl ipv6:$ipv6_listen)"
     done
 
     # === 非通配符代理规则 (proxy sections) ===
@@ -123,7 +166,7 @@ generate_sites() {
         [ -z "$domain" ] || [ -z "$taddr" ] && continue
         idx=$((idx + 1))
         local conf="${SITES_DIR}/site_${idx}.conf"; > "$conf"
-        write_server "$conf" "$domain" "$lport" "$taddr" "$tport" "$ssl" "$h2" "$ws" "$h2s"
+        write_server "$conf" "$domain" "$lport" "$taddr" "$tport" "$ssl" "$h2" "$ws" "$h2s" "$ipv6_listen"
     done
 
     # === 子域名规则：继承通配符主域名设置 ===
@@ -137,7 +180,6 @@ generate_sites() {
 
         local domain="${prefix}.${parent}"
 
-        # 读取主域名设置
         local parent_conf="/tmp/minigate_proxy_${parent}.tmp"
         local lport="443" ssl="0"
         if [ -f "$parent_conf" ]; then
@@ -148,10 +190,9 @@ generate_sites() {
 
         idx=$((idx + 1))
         local conf="${SITES_DIR}/site_${idx}.conf"; > "$conf"
-        write_server "$conf" "$domain" "$lport" "$taddr" "$tport" "$ssl" "1" "0" "$h2s"
+        write_server "$conf" "$domain" "$lport" "$taddr" "$tport" "$ssl" "1" "0" "$h2s" "$ipv6_listen"
     done
 
-    # 清理临时文件
     rm -f /tmp/minigate_proxy_*.tmp
 }
 

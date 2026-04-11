@@ -12,6 +12,7 @@ function index()
     entry({"admin","services","minigate","acme_install"}, call("action_acme_install")).leaf=true
     entry({"admin","services","minigate","acme_issue"}, call("action_acme_issue")).leaf=true
     entry({"admin","services","minigate","ddns_sync"}, call("action_ddns_sync")).leaf=true
+    entry({"admin","services","minigate","proxy_access"}, call("action_proxy_access")).leaf=true
 end
 
 function action_status()
@@ -30,11 +31,26 @@ function action_status()
     local ca=false; local cf=io.open("/etc/crontabs/root","r")
     if cf then local c=cf:read("*a"); cf:close(); ca=c:find("minigate")~=nil end
     local dl={}
-    uci:foreach("minigate","ddns",function(s) dl[#dl+1]={name=s[".name"],enabled=s.enabled or"0",domain=s.domain or"",status=s.status or"unknown",status_msg=s.status_msg or"",last_ip=s.last_ip or"",last_update=s.last_update or"",next_sync=s.next_sync or""} end)
+    uci:foreach("minigate","ddns",function(s)
+        dl[#dl+1]={
+            name=s[".name"],
+            enabled=s.enabled or"0",
+            domain=s.domain or"",
+            ip_version=s.ip_version or"ipv4",
+            status=s.status or"unknown",
+            status_msg=s.status_msg or"",
+            last_ip=s.last_ip or"",
+            last_ip6=s.last_ip6 or"",
+            last_update=s.last_update or"",
+            next_sync=s.next_sync or""
+        }
+    end)
+
+    -- 全局 IPv6 监听状态
+    local ipv6_listen = uci:get("minigate","global","ipv6_listen") or "0"
 
     -- 收集代理规则信息
     local proxy_rules = {}
-    -- 获取通配符监听端口
     local wc_ports = {}
     uci:foreach("minigate","proxy_wildcard",function(s)
         if (s.enabled == "1" or s.enabled == true) and s.domain then
@@ -43,7 +59,6 @@ function action_status()
             wc_ports[base] = {port=s.listen_port or "443", ssl=ssl_val}
         end
     end)
-    -- 子域名规则
     uci:foreach("minigate","subproxy",function(s)
         local parent = s.parent_domain or ""
         local prefix = s.prefix or ""
@@ -54,21 +69,34 @@ function action_status()
             local lport = wc.port or "443"
             local ssl_val = wc.ssl or "0"
             local scheme = (ssl_val == "1" or ssl_val == "true") and "https" or "http"
-            proxy_rules[#proxy_rules+1] = {domain=prefix.."."..parent, target=taddr..":"..tport, listen_port=lport, scheme=scheme}
+            proxy_rules[#proxy_rules+1] = {domain=prefix.."."..parent, target=taddr..":"..tport, listen_port=lport, scheme=scheme, ipv6_listen=ipv6_listen}
         end
     end)
-    -- 普通代理规则
     uci:foreach("minigate","proxy",function(s)
         if (s.enabled == "1" or s.enabled == true) and s.domain and s.target_addr then
             local ssl_val = tostring(s.ssl or "0")
             local scheme = (ssl_val == "1" or ssl_val == "true") and "https" or "http"
-            proxy_rules[#proxy_rules+1] = {domain=s.domain, target=(s.target_addr or "")..":"..(s.target_port or "80"), listen_port=s.listen_port or "443", scheme=scheme}
+            proxy_rules[#proxy_rules+1] = {domain=s.domain, target=(s.target_addr or "")..":"..(s.target_port or "80"), listen_port=s.listen_port or "443", scheme=scheme, ipv6_listen=ipv6_listen}
         end
     end)
 
     luci.http.prepare_content("application/json")
-    luci.http.write_json({enabled=uci:get("minigate","global","enabled")or"0",proxy_running=pr,cron_active=ca,recent_log=table.concat(ll,"\n"),ddns_list=dl,proxy_rules=proxy_rules,
-        acme={enabled=uci:get("minigate","acme","enabled")or"0",status=uci:get("minigate","acme","status")or"unknown",last_domain=uci:get("minigate","acme","last_domain")or"",last_issue=uci:get("minigate","acme","last_issue")or"",cert_expiry=uci:get("minigate","acme","cert_expiry")or""}})
+    luci.http.write_json({
+        enabled=uci:get("minigate","global","enabled")or"0",
+        ipv6_listen=ipv6_listen,
+        proxy_running=pr,
+        cron_active=ca,
+        recent_log=table.concat(ll,"\n"),
+        ddns_list=dl,
+        proxy_rules=proxy_rules,
+        acme={
+            enabled=uci:get("minigate","acme","enabled")or"0",
+            status=uci:get("minigate","acme","status")or"unknown",
+            last_domain=uci:get("minigate","acme","last_domain")or"",
+            last_issue=uci:get("minigate","acme","last_issue")or"",
+            cert_expiry=uci:get("minigate","acme","cert_expiry")or""
+        }
+    })
 end
 
 function action_get_log()
@@ -99,5 +127,62 @@ function action_ddns_sync()
     local uci=require"luci.model.uci".cursor()
     local st=sec~=""and(uci:get("minigate",sec,"status")or"unknown")or"done"
     local ip=sec~=""and(uci:get("minigate",sec,"last_ip")or"")or""
-    luci.http.prepare_content("application/json"); luci.http.write_json({success=(st=="ok"),status=st,ip=ip})
+    local ip6=sec~=""and(uci:get("minigate",sec,"last_ip6")or"")or""
+    luci.http.prepare_content("application/json"); luci.http.write_json({success=(st=="ok"or st=="partial"),status=st,ip=ip,ip6=ip6})
+end
+
+function action_proxy_access()
+    local sys = require "luci.sys"
+    -- 读取最近 500 条日志，按 IP 聚合
+    local raw = sys.exec("tail -n 500 /var/log/minigate-access.log 2>/dev/null") or ""
+    local visitors = {}  -- ip -> {last_time, domain, count, first_time}
+    local order = {}     -- 保持顺序
+
+    for line in raw:gmatch("[^\n]+") do
+        local time   = line:match('"time":"([^"]*)"')
+        local domain = line:match('"domain":"([^"]*)"')
+        local client = line:match('"client":"([^"]*)"')
+        if time and client and client ~= "" then
+            if not visitors[client] then
+                visitors[client] = { last_time = time, first_time = time, domain = domain or "", count = 1 }
+                order[#order + 1] = client
+            else
+                visitors[client].last_time = time
+                visitors[client].count = visitors[client].count + 1
+                if domain and domain ~= "" then
+                    visitors[client].domain = domain
+                end
+            end
+        end
+    end
+
+    -- 按最后访问时间倒序
+    table.sort(order, function(a, b)
+        return visitors[a].last_time > visitors[b].last_time
+    end)
+
+    -- 取前 30 个
+    local result = {}
+    local now = os.time()
+    for i = 1, math.min(#order, 30) do
+        local ip = order[i]
+        local v = visitors[ip]
+        -- 解析 ISO 时间判断是否在线（5分钟内）
+        local online = false
+        local y,mo,da,h,mi,se = v.last_time:match("(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)")
+        if y then
+            local ts = os.time({year=tonumber(y),month=tonumber(mo),day=tonumber(da),hour=tonumber(h),min=tonumber(mi),sec=tonumber(se)})
+            online = (now - ts) < 300
+        end
+        result[#result + 1] = {
+            ip = ip,
+            last_time = v.last_time,
+            domain = v.domain,
+            count = v.count,
+            online = online
+        }
+    end
+
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({ visitors = result })
 end

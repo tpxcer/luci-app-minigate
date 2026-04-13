@@ -9,7 +9,6 @@
 - **IPv4 / IPv6 / 双栈** 模式，同时更新 A 和 AAAA 记录
 - 自动检测 WAN IP 变化并更新 DNS 记录
 - 支持从网络接口或外部 URL 获取 IP
-- IPv6 支持 wan6 接口和 api6.ipify.org 等外部获取
 - 可配置检查间隔和强制更新间隔
 - 一键手动触发更新
 
@@ -23,84 +22,109 @@
 ### 🔄 反向代理
 - 基于 **Nginx** 的轻量反向代理
 - **IPv6 监听**支持（listen [::]:port 双栈）
-- 自动 HTTP → HTTPS 跳转
-- HTTP/2 支持
-- WebSocket 代理支持
+- HTTP/2 、WebSocket 支持
 - 自动 SSL 证书关联
-- 安全 Headers（HSTS、X-Frame-Options 等）
+- 安全 Headers（HSTS 等）
 - 多站点管理
-- **访客追踪**：总览页面实时显示访客 IP、归属地、在线状态
+
+### 👁 访客追踪
+- 总览页面实时显示访客 IP、归属地、在线状态
+- 5 分钟内有访问记为「在线」（绿点），否则「离线」（灰点）
+- IP 归属地多源查询（太平洋、ip9.com.cn、ip-api.com 自动回退）
+
+---
 
 ## 安装方法
 
-### 方法 1: IPK 安装（推荐）
+### OpenWrt 25.xx 新版（apk 包管理器）
 
-从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载最新 ipk 文件。
+从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载 `.apk` 文件和 `minigate.pem` 公钥。
 
-**通过 LuCI 界面安装：**
+```bash
+# 第一步：安装公钥（仅首次安装需要，以后更新不用重复）
+wget -O /etc/apk/keys/minigate.pem \
+  https://github.com/tpxcer/luci-app-minigate/releases/download/v1.1.0/minigate.pem
+
+# 第二步：下载并安装
+wget -O /tmp/minigate.apk \
+  https://github.com/tpxcer/luci-app-minigate/releases/download/v1.1.0/luci-app-minigate_1.1.0-r1_all.apk
+apk add /tmp/minigate.apk
+
+# 第三步：清除缓存
+rm -rf /tmp/luci-*
+```
+
+> 安装公钥后，以后更新版本直接 `apk add` 即可，不需要 `--allow-untrusted`。
+
+### OpenWrt 24.xx 及以下 / ImmortalWrt（opkg 包管理器）
+
+从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载 `.ipk` 文件。
+
+**方法一：LuCI 界面安装（推荐小白用户）**
 1. 打开 LuCI → **系统** → **软件包**
 2. 点击 **上传软件包**
-3. 选择下载的 `luci-app-minigate_x.x.x-x_all.ipk` 文件
-4. 点击安装
+3. 选择下载的 `.ipk` 文件，点击安装
 
-**通过命令行安装：**
+**方法二：命令行安装**
 ```bash
-# 上传 ipk 到路由器
+# 上传到路由器
 scp luci-app-minigate_1.1.0-1_all.ipk root@192.168.1.1:/tmp/
 
 # SSH 安装
-ssh root@192.168.1.1
 opkg install /tmp/luci-app-minigate_1.1.0-1_all.ipk
-
-# 清除缓存
 rm -rf /tmp/luci-*
 ```
 
-**安装后如果报 postinst Permission denied，执行：**
-```bash
-chmod +x /usr/lib/opkg/info/luci-app-minigate.postinst /usr/lib/opkg/info/luci-app-minigate.prerm
-sh /usr/lib/opkg/info/luci-app-minigate.postinst
-rm -rf /tmp/luci-*
-```
+> 如果安装时报 `postinst Permission denied`，执行：
+> ```bash
+> chmod +x /usr/lib/opkg/info/luci-app-minigate.postinst
+> sh /usr/lib/opkg/info/luci-app-minigate.postinst
+> rm -rf /tmp/luci-*
+> ```
 
-### 方法 2: 手动安装
+### 手动安装（通用）
 
 ```bash
-# 1. 将项目上传到路由器
 scp -r luci-app-minigate root@192.168.1.1:/tmp/
-
-# 2. SSH 到路由器执行安装脚本
 ssh root@192.168.1.1
 cd /tmp/luci-app-minigate
 sh install.sh
 ```
 
-### 方法 3: OpenWrt SDK 编译
+---
 
+## 升级方法
+
+**apk 用户：**
 ```bash
-# 将 luci-app-minigate 目录放入 OpenWrt SDK 的 package/ 目录
-cp -r luci-app-minigate ~/openwrt/package/
-
-# 编译
-cd ~/openwrt
-make package/luci-app-minigate/compile V=s
-
-# 生成的 ipk 在 bin/packages/ 目录下
+apk add /tmp/luci-app-minigate_1.1.0-r1_all.apk
+rm -rf /tmp/luci-*
 ```
+
+**opkg 用户：**
+```bash
+opkg install --force-reinstall /tmp/luci-app-minigate_1.1.0-1_all.ipk
+rm -rf /tmp/luci-*
+```
+
+配置文件 `/etc/config/minigate` 会自动保留，不会被覆盖。
+
+---
 
 ## 卸载方法
 
 ### 完整卸载
 
 ```bash
-# 1. 停止服务
+# 停止服务
 /etc/init.d/minigate stop 2>/dev/null
 /etc/init.d/minigate disable 2>/dev/null
 
-# 2. 通过 opkg 卸载
-opkg remove luci-app-minigate --force-depends
+# 卸载包（二选一）
+opkg remove luci-app-minigate --force-depends    # opkg 用户
+apk del luci-app-minigate                         # apk 用户
 
-# 3. 清理残留文件
+# 清理残留
 rm -f /usr/lib/opkg/info/luci-app-minigate.*
 rm -rf /usr/lib/lua/luci/controller/minigate.lua
 rm -rf /usr/lib/lua/luci/model/cbi/minigate/
@@ -108,23 +132,23 @@ rm -rf /usr/lib/lua/luci/view/minigate/
 rm -rf /usr/lib/minigate/
 rm -f /etc/init.d/minigate
 
-# 4. 清理数据（可选，如需保留配置请跳过）
+# 清理数据（可选，跳过则保留配置）
 rm -f /etc/config/minigate
 rm -rf /etc/minigate/
 
-# 5. 清理日志和 cron
+# 清理日志和定时任务
 rm -f /var/log/minigate-*.log
 sed -i '/minigate/d' /etc/crontabs/root 2>/dev/null
 /etc/init.d/cron restart 2>/dev/null
 
-# 6. 清除 LuCI 缓存
+# 清除 LuCI 缓存
 rm -rf /tmp/luci-*
 ```
 
 ### 仅卸载保留配置
 
 ```bash
-opkg remove luci-app-minigate --force-depends
+opkg remove luci-app-minigate --force-depends    # 或 apk del luci-app-minigate
 rm -f /usr/lib/opkg/info/luci-app-minigate.*
 rm -rf /usr/lib/lua/luci/controller/minigate.lua
 rm -rf /usr/lib/lua/luci/model/cbi/minigate/
@@ -132,17 +156,10 @@ rm -rf /usr/lib/lua/luci/view/minigate/
 rm -rf /usr/lib/minigate/
 rm -f /etc/init.d/minigate
 rm -rf /tmp/luci-*
-# /etc/config/minigate 和 /etc/minigate/ 保留，重装后自动恢复配置
+# /etc/config/minigate 和 /etc/minigate/ 保留，重装后自动恢复
 ```
 
-## 升级方法
-
-```bash
-# 直接覆盖安装即可，配置会保留
-opkg install --force-reinstall /tmp/luci-app-minigate_1.1.0-1_all.ipk
-rm -rf /tmp/luci-*
-/etc/init.d/minigate restart
-```
+---
 
 ## 使用指南
 
@@ -153,70 +170,53 @@ rm -rf /tmp/luci-*
 
 ### 第二步：配置 DDNS
 1. 切换到 **DDNS** 标签页
-2. 启用 DDNS
-3. 填入你的 Cloudflare Zone ID 和 API Token
-4. 设置要更新的域名
-5. 选择协议版本：仅 IPv4 / 仅 IPv6 / 双栈
-6. 保存并应用
+2. 启用 DDNS，填入 Cloudflare Zone ID 和 API Token
+3. 设置域名，选择协议版本（IPv4 / IPv6 / 双栈）
+4. 保存并应用
 
 ### 第三步：签发 SSL 证书
-1. 切换到 **SSL 证书** 标签页
-2. 启用 ACME
-3. 填入 Cloudflare API Token（需要 Zone:DNS:Edit 权限）
-4. 先用 Staging 模式测试
-5. 点击「立即签发 / 续期」签发证书
-6. 测试成功后关闭 Staging 模式重新签发
+1. 切换到 **SSL 证书** 标签页，启用 ACME
+2. 先用 Staging 模式测试
+3. 点击「立即签发 / 续期」
+4. 成功后关闭 Staging 重新签发正式证书
 
 ### 第四步：配置反向代理
 1. 切换到 **反向代理** 标签页
-2. 添加新的代理规则
-3. 填写域名、目标地址和端口
-4. 启用 SSL（会自动使用 ACME 签发的证书）
-5. 保存并应用
+2. 添加规则，填写域名、目标地址和端口
+3. 启用 SSL（自动关联 ACME 证书）
+4. 保存并应用
 
-### 访客追踪
-- 总览页面下方会自动显示通过反向代理访问的 IP
-- 显示内容：在线状态（绿点/灰点）、IP 地址、归属地、最后访问时间、访问域名、访问次数
-- 5 分钟内有访问记为「在线」
-- IP 归属地通过 ip-api.com 查询（免费，带缓存）
-
-## Cloudflare API Token 创建方法
-
+### Cloudflare API Token 创建方法
 1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. 点击右上角头像 → **My Profile** → **API Tokens**
-3. 点击 **Create Token**
-4. 使用 **Edit zone DNS** 模板
-5. Zone Resources 选择你的域名
-6. 创建并复制 Token
+2. 头像 → **My Profile** → **API Tokens** → **Create Token**
+3. 使用 **Edit zone DNS** 模板
+4. Zone Resources 选择你的域名
+5. 创建并复制 Token
+
+---
 
 ## 文件结构
 
 ```
 luci-app-minigate/
 ├── Makefile                           # OpenWrt 编译配置
-├── README.md                          # 本文件
+├── README.md
 ├── install.sh                         # 一键安装脚本
-├── po2lmo.sh                          # 翻译编译脚本
 ├── luasrc/
-│   ├── controller/
-│   │   └── minigate.lua               # LuCI 路由控制器
+│   ├── controller/minigate.lua        # LuCI 路由控制器
 │   ├── model/cbi/minigate/
-│   │   ├── general.lua                # 总览页面（含访客追踪）
-│   │   ├── ddns.lua                   # DDNS 配置页面（IPv4/IPv6）
-│   │   ├── acme.lua                   # ACME 配置页面
-│   │   └── proxy.lua                  # 反向代理配置页面
-│   └── view/minigate/
-│       └── log.htm                    # 日志查看页面
+│   │   ├── general.lua                # 总览（含访客追踪）
+│   │   ├── ddns.lua                   # DDNS（IPv4/IPv6）
+│   │   ├── acme.lua                   # ACME 证书
+│   │   └── proxy.lua                  # 反向代理
+│   └── view/minigate/log.htm          # 日志页面
 └── root/
-    ├── etc/
-    │   ├── config/
-    │   │   └── minigate               # UCI 配置文件
-    │   └── init.d/
-    │       └── minigate               # procd 服务脚本
+    ├── etc/config/minigate            # UCI 配置
+    ├── etc/init.d/minigate            # 服务脚本
     └── usr/lib/minigate/
-        ├── ddns.sh                    # DDNS 更新脚本（IPv4/IPv6双栈）
-        ├── acme.sh                    # ACME 证书管理
-        └── proxy.sh                   # Nginx 反向代理管理（IPv6监听+访问日志）
+        ├── ddns.sh                    # DDNS（双栈）
+        ├── acme.sh                    # 证书管理
+        └── proxy.sh                   # 反代（IPv6+访问日志）
 ```
 
 ## 依赖
@@ -224,7 +224,7 @@ luci-app-minigate/
 - `luci-base` - LuCI Web 界面
 - `nginx-ssl` - Nginx（带 SSL 支持）
 - `openssl-util` - 证书工具
-- `curl` - HTTP 客户端（Cloudflare API）
+- `curl` - HTTP 客户端
 - `jsonfilter` - JSON 解析
 
 ## 更新日志
@@ -233,14 +233,12 @@ luci-app-minigate/
 - ✨ DDNS 支持 IPv6 / 双栈模式（A + AAAA 记录）
 - ✨ 反向代理支持 IPv6 监听
 - ✨ 总览页面新增访客追踪（IP、归属地、在线状态）
-- ✨ Nginx 访问日志（JSON 格式）
+- ✨ Nginx JSON 格式访问日志
+- ✨ 同时提供 APK（已签名）和 IPK 安装包
 - 🐛 目标地址支持 IPv6 格式
 
 ### v1.0.0
-- 🎉 初始版本
-- Cloudflare DDNS
-- Let's Encrypt ACME 证书
-- Nginx 反向代理
+- 🎉 初始版本：Cloudflare DDNS、Let's Encrypt ACME、Nginx 反向代理
 
 ## 许可证
 

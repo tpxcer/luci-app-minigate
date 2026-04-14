@@ -22,76 +22,56 @@
 ### 🔄 反向代理
 - 基于 **Nginx** 的轻量反向代理
 - **IPv6 监听**支持（listen [::]:port 双栈）
-- HTTP/2 、WebSocket 支持
+- HTTP/2、WebSocket 支持
 - 自动 SSL 证书关联
 - 安全 Headers（HSTS 等）
 - 多站点管理
+- **直接 IP 访问拒绝**：只允许域名访问，扫描器直接断开
 
 ### 👁 访客追踪
 - 总览页面实时显示访客 IP、归属地、在线状态
 - 5 分钟内有访问记为「在线」（绿点），否则「离线」（灰点）
-- IP 归属地多源查询（太平洋、ip9.com.cn、ip-api.com 自动回退）
+- IP 归属地后端查询（ip9.com.cn → ip-api.com → pconline 多源回退）
 
 ---
 
 ## 安装方法
 
-### OpenWrt 25.xx 新版（apk 包管理器）
+### 方法 1：源码安装（推荐，适用所有版本）
 
-从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载 `.apk` 文件和 `minigate.pem` 公钥。
+适用于 **OpenWrt 25.xx（apk）** 和 **OpenWrt 24.xx 及以下（opkg）** 以及 **ImmortalWrt** 所有版本。
 
 ```bash
-# 第一步：安装公钥（仅首次安装需要，以后更新不用重复）
-wget -O /etc/apk/keys/minigate.pem \
-  https://github.com/tpxcer/luci-app-minigate/releases/download/v1.1.0/minigate.pem
+# 1. 下载源码包到电脑，然后上传到路由器
+scp luci-app-minigate-v1.1.0-src.tar.gz root@192.168.1.1:/tmp/
 
-# 第二步：下载并安装
-wget -O /tmp/minigate.apk \
-  https://github.com/tpxcer/luci-app-minigate/releases/download/v1.1.0/luci-app-minigate_1.1.0-r1_all.apk
-apk add /tmp/minigate.apk
+# 2. SSH 到路由器
+ssh root@192.168.1.1
 
-# 第三步：清除缓存
-rm -rf /tmp/luci-*
-```
-
-> 安装公钥后，以后更新版本直接 `apk add` 即可，不需要 `--allow-untrusted`。
-
-方法二
-
-SCP 上传到/tmp后执行：
-bashcd /tmp
+# 3. 解压并安装
+cd /tmp
 tar xzf luci-app-minigate-v1.1.0-src.tar.gz
+sh install.sh
 
-mkdir -p /usr/lib/minigate /etc/minigate/{acme,certs,nginx/sites}
-mkdir -p /usr/lib/lua/luci/controller /usr/lib/lua/luci/model/cbi/minigate /usr/lib/lua/luci/view/minigate
-
-cp root/etc/config/minigate /etc/config/
-cp root/etc/init.d/minigate /etc/init.d/; chmod +x /etc/init.d/minigate
-cp root/usr/lib/minigate/*.sh /usr/lib/minigate/; chmod +x /usr/lib/minigate/*.sh
-cp luasrc/controller/minigate.lua /usr/lib/lua/luci/controller/
-cp luasrc/model/cbi/minigate/*.lua /usr/lib/lua/luci/model/cbi/minigate/
-cp luasrc/view/minigate/*.htm /usr/lib/lua/luci/view/minigate/
-
-/etc/init.d/minigate enable
-rm -rf /tmp/luci-*
+# 4. 启动服务
 /etc/init.d/minigate restart
 
+# 5. 访问 LuCI → 服务 → MiniGate
+```
 
-### OpenWrt 24.xx 及以下 / ImmortalWrt（opkg 包管理器）
+### 方法 2：IPK 安装（OpenWrt 24.xx / ImmortalWrt opkg 版本）
 
 从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载 `.ipk` 文件。
 
-**方法一：LuCI 界面安装（推荐小白用户）**
+**通过 LuCI 界面安装：**
 1. 打开 LuCI → **系统** → **软件包**
 2. 点击 **上传软件包**
-3. 选择下载的 `.ipk` 文件，点击安装
+3. 选择 `.ipk` 文件，点击安装
 
-**方法二：命令行安装**
+**通过命令行安装：**
 ```bash
-# 上传到路由器
 scp luci-app-minigate_1.1.0-1_all.ipk root@192.168.1.1:/tmp/
-
-# SSH 安装
+ssh root@192.168.1.1
 opkg install /tmp/luci-app-minigate_1.1.0-1_all.ipk
 rm -rf /tmp/luci-*
 ```
@@ -103,32 +83,44 @@ rm -rf /tmp/luci-*
 > rm -rf /tmp/luci-*
 > ```
 
-### 手动安装（通用）
+### 方法 3：OpenWrt SDK 编译（适用所有版本，含 APK）
+
+如果需要正规的 `.apk` 安装包，需使用 OpenWrt SDK 编译：
 
 ```bash
-scp -r luci-app-minigate root@192.168.1.1:/tmp/
-ssh root@192.168.1.1
-cd /tmp/luci-app-minigate
-sh install.sh
+# 将源码放入 SDK 的 package 目录
+cp -r luci-app-minigate ~/openwrt/package/
+
+# 编译
+cd ~/openwrt
+make package/luci-app-minigate/compile V=s
+
+# 生成的 ipk 或 apk 在 bin/packages/ 目录下
 ```
 
 ---
 
 ## 升级方法
 
-**apk 用户：**
+### 源码升级（通用）
+
 ```bash
-apk add /tmp/luci-app-minigate_1.1.0-r1_all.apk
-rm -rf /tmp/luci-*
+scp luci-app-minigate-v1.1.0-src.tar.gz root@192.168.1.1:/tmp/
+ssh root@192.168.1.1
+cd /tmp && tar xzf luci-app-minigate-v1.1.0-src.tar.gz
+sh install.sh
+/etc/init.d/minigate restart
 ```
 
-**opkg 用户：**
+### IPK 升级
+
 ```bash
 opkg install --force-reinstall /tmp/luci-app-minigate_1.1.0-1_all.ipk
 rm -rf /tmp/luci-*
+/etc/init.d/minigate restart
 ```
 
-配置文件 `/etc/config/minigate` 会自动保留，不会被覆盖。
+配置文件 `/etc/config/minigate` 会自动保留。
 
 ---
 
@@ -137,15 +129,15 @@ rm -rf /tmp/luci-*
 ### 完整卸载
 
 ```bash
-# 停止服务
+# 1. 停止服务
 /etc/init.d/minigate stop 2>/dev/null
 /etc/init.d/minigate disable 2>/dev/null
 
-# 卸载包（二选一）
-opkg remove luci-app-minigate --force-depends    # opkg 用户
-apk del luci-app-minigate                         # apk 用户
+# 2. 卸载包（如果通过包管理器安装的）
+opkg remove luci-app-minigate --force-depends 2>/dev/null  # opkg 用户
+apk del luci-app-minigate 2>/dev/null                       # apk 用户
 
-# 清理残留
+# 3. 清理所有文件
 rm -f /usr/lib/opkg/info/luci-app-minigate.*
 rm -rf /usr/lib/lua/luci/controller/minigate.lua
 rm -rf /usr/lib/lua/luci/model/cbi/minigate/
@@ -153,23 +145,24 @@ rm -rf /usr/lib/lua/luci/view/minigate/
 rm -rf /usr/lib/minigate/
 rm -f /etc/init.d/minigate
 
-# 清理数据（可选，跳过则保留配置）
+# 4. 清理数据（可选，跳过则保留配置）
 rm -f /etc/config/minigate
 rm -rf /etc/minigate/
 
-# 清理日志和定时任务
+# 5. 清理日志和定时任务
 rm -f /var/log/minigate-*.log
 sed -i '/minigate/d' /etc/crontabs/root 2>/dev/null
 /etc/init.d/cron restart 2>/dev/null
 
-# 清除 LuCI 缓存
+# 6. 清除 LuCI 缓存
 rm -rf /tmp/luci-*
 ```
 
 ### 仅卸载保留配置
 
 ```bash
-opkg remove luci-app-minigate --force-depends    # 或 apk del luci-app-minigate
+opkg remove luci-app-minigate --force-depends 2>/dev/null
+apk del luci-app-minigate 2>/dev/null
 rm -f /usr/lib/opkg/info/luci-app-minigate.*
 rm -rf /usr/lib/lua/luci/controller/minigate.lua
 rm -rf /usr/lib/lua/luci/model/cbi/minigate/
@@ -216,13 +209,23 @@ rm -rf /tmp/luci-*
 
 ---
 
+## 安全特性
+
+### 域名访问限制
+安装后，反向代理自动拒绝直接使用 IP 地址访问的请求（返回 444 断开连接）。只有通过正确域名访问才能到达后端服务。这可以有效防止网络扫描器探测。
+
+### 访客追踪
+总览页面实时显示所有通过反向代理访问的 IP 地址、归属地和在线状态，帮助你发现异常访问。
+
+---
+
 ## 文件结构
 
 ```
 luci-app-minigate/
 ├── Makefile                           # OpenWrt 编译配置
 ├── README.md
-├── install.sh                         # 一键安装脚本
+├── install.sh                         # 一键安装脚本（兼容 opkg/apk）
 ├── luasrc/
 │   ├── controller/minigate.lua        # LuCI 路由控制器
 │   ├── model/cbi/minigate/
@@ -237,7 +240,7 @@ luci-app-minigate/
     └── usr/lib/minigate/
         ├── ddns.sh                    # DDNS（双栈）
         ├── acme.sh                    # 证书管理
-        └── proxy.sh                   # 反代（IPv6+访问日志）
+        └── proxy.sh                   # 反代（IPv6+访问日志+IP拒绝）
 ```
 
 ## 依赖
@@ -254,8 +257,10 @@ luci-app-minigate/
 - ✨ DDNS 支持 IPv6 / 双栈模式（A + AAAA 记录）
 - ✨ 反向代理支持 IPv6 监听
 - ✨ 总览页面新增访客追踪（IP、归属地、在线状态）
-- ✨ Nginx JSON 格式访问日志
-- ✨ 同时提供 APK（已签名）和 IPK 安装包
+- ✨ 归属地后端查询（解决浏览器跨域问题）
+- ✨ 直接 IP 访问拒绝（防扫描器）
+- ✨ 同时兼容 opkg（IPK）和 apk（源码安装）
+- ✨ install.sh 自动适配 opkg/apk 环境
 - 🐛 目标地址支持 IPv6 格式
 
 ### v1.0.0

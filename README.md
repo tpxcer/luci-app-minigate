@@ -56,6 +56,26 @@ rm -rf /tmp/luci-*
 
 > 安装公钥后，以后更新版本直接 `apk add` 即可，不需要 `--allow-untrusted`。
 
+方法二
+
+SCP 上传到/tmp后执行：
+bashcd /tmp
+tar xzf luci-app-minigate-v1.1.0-src.tar.gz
+
+mkdir -p /usr/lib/minigate /etc/minigate/{acme,certs,nginx/sites}
+mkdir -p /usr/lib/lua/luci/controller /usr/lib/lua/luci/model/cbi/minigate /usr/lib/lua/luci/view/minigate
+
+cp root/etc/config/minigate /etc/config/
+cp root/etc/init.d/minigate /etc/init.d/; chmod +x /etc/init.d/minigate
+cp root/usr/lib/minigate/*.sh /usr/lib/minigate/; chmod +x /usr/lib/minigate/*.sh
+cp luasrc/controller/minigate.lua /usr/lib/lua/luci/controller/
+cp luasrc/model/cbi/minigate/*.lua /usr/lib/lua/luci/model/cbi/minigate/
+cp luasrc/view/minigate/*.htm /usr/lib/lua/luci/view/minigate/
+
+/etc/init.d/minigate enable
+rm -rf /tmp/luci-*
+/etc/init.d/minigate restart
+
 ### OpenWrt 24.xx 及以下 / ImmortalWrt（opkg 包管理器）
 
 从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载 `.ipk` 文件。

@@ -76,6 +76,7 @@ cp luasrc/view/minigate/*.htm /usr/lib/lua/luci/view/minigate/
 rm -rf /tmp/luci-*
 /etc/init.d/minigate restart
 
+
 ### OpenWrt 24.xx 及以下 / ImmortalWrt（opkg 包管理器）
 
 从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载 `.ipk` 文件。

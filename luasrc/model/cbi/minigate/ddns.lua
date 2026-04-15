@@ -39,13 +39,12 @@ o:depends("ip_source","interface")
 
 -- IPv4 URL
 o=s:option(ListValue,"ip_url","IPv4 获取地址")
-o:value("https://api.ipify.org","api.ipify.org")
-o:value("https://4.ipw.cn","4.ipw.cn")
-o:value("https://ip.3322.net","ip.3322.net")
-o:value("https://ddns.oray.com/checkip","ddns.oray.com")
-o:value("https://myip.ipip.net","myip.ipip.net")
-o:value("http://v4.66666.host:66/ip","v4.66666.host")
-o.default="https://api.ipify.org"
+o:value("http://ip.3322.net","ip.3322.net")
+o:value("http://members.3322.org/dyndns/getip","members.3322.org")
+o:value("http://ns1.dnspod.net:6666","ns1.dnspod.net (腾讯)")
+o:value("http://ip.tool.chinaz.com/getip","chinaz.com (站长工具)")
+o.default="http://ip.3322.net"
+o.description="旁路由/代理环境自动绕过代理直连获取真实公网IP"
 o:depends("ip_source","url")
 
 -- IPv6 网卡

@@ -13,6 +13,7 @@ function index()
     entry({"admin","services","minigate","acme_issue"}, call("action_acme_issue")).leaf=true
     entry({"admin","services","minigate","ddns_sync"}, call("action_ddns_sync")).leaf=true
     entry({"admin","services","minigate","proxy_access"}, call("action_proxy_access")).leaf=true
+    entry({"admin","services","minigate","geo_lookup"}, call("action_geo_lookup")).leaf=true
 end
 
 function action_status()
@@ -185,4 +186,62 @@ function action_proxy_access()
 
     luci.http.prepare_content("application/json")
     luci.http.write_json({ visitors = result })
+end
+
+function action_geo_lookup()
+    local sys = require "luci.sys"
+    local ip = luci.http.formvalue("ip") or ""
+    -- 安全校验：只允许 IP 地址字符
+    if not ip:match("^[%d%.%:a-fA-F]+$") then
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({ ip = ip, geo = "无效IP" })
+        return
+    end
+
+    local geo = nil
+
+    -- API 1: ip9.com.cn（UTF-8，国内快）
+    if not geo then
+        local raw = sys.exec("curl -s --connect-timeout 3 --max-time 5 'https://ip9.com.cn/get?ip=" .. ip .. "' 2>/dev/null")
+        if raw and raw ~= "" then
+            local country = raw:match('"country":"([^"]*)"') or ""
+            local prov = raw:match('"prov":"([^"]*)"') or ""
+            local city = raw:match('"city":"([^"]*)"') or ""
+            local isp = raw:match('"isp":"([^"]*)"') or ""
+            local loc = (country .. prov .. city):gsub("中国", "")
+            if isp ~= "" then loc = loc .. " " .. isp end
+            loc = loc:gsub("^%s+", ""):gsub("%s+$", "")
+            if loc ~= "" then geo = loc end
+        end
+    end
+
+    -- API 2: ip-api.com（UTF-8，国外覆盖好）
+    if not geo then
+        local raw = sys.exec("curl -s --connect-timeout 3 --max-time 5 'http://ip-api.com/json/" .. ip .. "?lang=zh-CN&fields=status,country,regionName,city,isp' 2>/dev/null")
+        if raw and raw ~= "" then
+            local status = raw:match('"status":"([^"]*)"')
+            if status == "success" then
+                local country = raw:match('"country":"([^"]*)"') or ""
+                local region = raw:match('"regionName":"([^"]*)"') or ""
+                local city = raw:match('"city":"([^"]*)"') or ""
+                local isp = raw:match('"isp":"([^"]*)"') or ""
+                local loc = (country .. region .. city):gsub("中国", "")
+                if isp ~= "" then loc = loc .. " " .. isp end
+                loc = loc:gsub("^%s+", ""):gsub("%s+$", "")
+                if loc ~= "" then geo = loc end
+            end
+        end
+    end
+
+    -- API 3: pconline（GBK 需转码）
+    if not geo then
+        local raw = sys.exec("curl -s --connect-timeout 3 --max-time 5 'https://whois.pconline.com.cn/ipJson.jsp?ip=" .. ip .. "&json=true' 2>/dev/null | iconv -f gbk -t utf-8 2>/dev/null")
+        if raw and raw ~= "" then
+            local addr = raw:match('"addr":"([^"]*)"')
+            if addr and addr ~= "" then geo = addr:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "") end
+        end
+    end
+
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({ ip = ip, geo = geo or "未知" })
 end

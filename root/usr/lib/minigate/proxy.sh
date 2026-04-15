@@ -115,6 +115,10 @@ SEOF
 
     cat >> "$conf" <<SEOF
     location / {
+        # 拒绝直接 IP 访问（非域名）
+        if (\$host ~* "^\d+\.\d+\.\d+\.\d+") {
+            return 444;
+        }
         proxy_pass http://${target_host}:${tport};
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;

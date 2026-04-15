@@ -23,6 +23,7 @@ o.rawhtml = true
 o.cfgvalue = function()
     local su = luci.dispatcher.build_url("admin/services/minigate/status")
     local au = luci.dispatcher.build_url("admin/services/minigate/proxy_access")
+    local gu = luci.dispatcher.build_url("admin/services/minigate/geo_lookup")
     return [[
 <div id="mg" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
 <div id="mg-ddns-card" style="background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #4caf50">
@@ -58,33 +59,10 @@ function fmtT(iso){
 
 function queryGeo(ip,cb){
     if(_geoCache[ip]){cb(_geoCache[ip]);return;}
-    // 多 API 回退：pconline → useragentinfo → ip-api.com
-    var apis=[
-        {url:'https://whois.pconline.com.cn/ipJson.jsp?ip='+ip+'&json=true',
-         parse:function(t){var d=JSON.parse(t);if(d.addr)return d.addr.replace(/\s+/g,' ').trim();return null;}},
-        {url:'https://ip9.com.cn/get?ip='+ip,
-         parse:function(t){var d=JSON.parse(t);if(d.ret==200&&d.data){var r=d.data;return((r.country||'')+(r.prov||'')+(r.city||'')+(r.isp?(' '+r.isp):'')).replace(/中国/,'').trim()||r.country||null;}return null;}},
-        {url:'http://ip-api.com/json/'+ip+'?lang=zh-CN&fields=status,country,regionName,city,isp',
-         parse:function(t){var d=JSON.parse(t);if(d.status=='success'){var loc=((d.country||'')+(d.regionName||'')+(d.city||'')).replace(/中国/,'')||d.country||'';if(d.isp)loc+=' '+d.isp;return loc.trim()||null;}return null;}}
-    ];
-    var idx=0;
-    function tryNext(){
-        if(idx>=apis.length){_geoCache[ip]='未知';cb('未知');return;}
-        var api=apis[idx];idx++;
-        var x=new XMLHttpRequest();
-        x.open('GET',api.url,true);
-        x.timeout=3000;
-        x.onload=function(){
-            try{
-                var result=api.parse(x.responseText);
-                if(result){_geoCache[ip]=result;cb(result);}
-                else tryNext();
-            }catch(e){tryNext();}
-        };
-        x.onerror=x.ontimeout=function(){tryNext();};
-        x.send();
-    }
-    tryNext();
+    XHR.get(']] .. gu .. [[',{ip:ip},function(x,d){
+        if(d&&d.geo){_geoCache[ip]=d.geo;cb(d.geo);}
+        else{_geoCache[ip]='未知';cb('未知');}
+    });
 }
 
 function loadVisitors(){

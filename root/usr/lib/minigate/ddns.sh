@@ -14,9 +14,29 @@ get_ip4_iface() {
 
 get_ip4_url() {
     local ip=""
-    ip=$(curl -4 -s --connect-timeout 5 "$1" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    [ -z "$ip" ] && ip=$(wget -4 -qO- "$1" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    echo "$ip"
+    # 备用 URL 列表（主选 + 自动回退）
+    local fallback_urls="http://ip.3322.net http://members.3322.org/dyndns/getip http://ns1.dnspod.net:6666 http://ip.tool.chinaz.com/getip"
+    local urls="$1 $fallback_urls"
+
+    for url in $urls; do
+        local host=$(echo "$url" | sed -E 's|https?://||;s|/.*||;s|:.*||')
+        local port=$(echo "$url" | grep -oE ':[0-9]+' | head -1 | tr -d ':')
+        local path=$(echo "$url" | sed -E 's|https?://[^/]*||')
+        [ -z "$path" ] && path="/"
+        [ -z "$port" ] && port="80"
+
+        # 方法1: 直连
+        ip=$(curl -4 -s --connect-timeout 3 "$url" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        [ -n "$ip" ] && { echo "$ip"; return; }
+
+        # 方法2: DNS 解析后用 Host 头直连（绕过代理）
+        local resolved=$(nslookup "$host" 223.5.5.5 2>/dev/null | grep -A1 'Name:' | grep 'Address:' | head -1 | awk '{print $2}')
+        if [ -n "$resolved" ]; then
+            ip=$(curl -4 -s --connect-timeout 3 -H "Host: ${host}" "http://${resolved}:${port}${path}" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            [ -n "$ip" ] && { echo "$ip"; return; }
+        fi
+    done
+    echo ""
 }
 
 # ====== IPv6 获取 ======
@@ -32,9 +52,23 @@ get_ip6_iface() {
 }
 
 get_ip6_url() {
-    local ip=""
-    ip=$(curl -6 -s --connect-timeout 5 "$1" 2>/dev/null | grep -oE '([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}' | head -1)
-    [ -z "$ip" ] && ip=$(wget -6 -qO- "$1" 2>/dev/null | grep -oE '([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}' | head -1)
+    local url="$1" ip=""
+    local host=$(echo "$url" | sed -E 's|https?://||;s|/.*||;s|:.*||')
+    local port=$(echo "$url" | grep -oE ':[0-9]+' | head -1 | tr -d ':')
+
+    # 先尝试直连
+    ip=$(curl -6 -s --connect-timeout 5 "$url" 2>/dev/null | grep -oE '([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}' | head -1)
+
+    # 如果失败，DNS 解析后直连绕过代理
+    if [ -z "$ip" ]; then
+        local resolved=$(nslookup "$host" 223.5.5.5 2>/dev/null | grep -A1 'Name:' | grep 'Address:' | head -1 | awk '{print $2}')
+        if [ -n "$resolved" ]; then
+            local scheme="http"
+            echo "$url" | grep -q '^https' && scheme="https"
+            [ -z "$port" ] && { [ "$scheme" = "https" ] && port="443" || port="80"; }
+            ip=$(curl -6 -s --connect-timeout 5 --resolve "${host}:${port}:${resolved}" "$url" 2>/dev/null | grep -oE '([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}' | head -1)
+        fi
+    fi
     echo "$ip"
 }
 

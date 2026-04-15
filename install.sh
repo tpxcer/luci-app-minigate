@@ -3,7 +3,16 @@ set -e
 D="$(cd "$(dirname "$0")" && pwd)"
 echo ""; echo "==== MiniGate 安装 ===="; echo ""
 [ "$(id -u)" = "0" ] || { echo "[!] 需要root"; exit 1; }
-for p in curl jsonfilter; do opkg list-installed 2>/dev/null|grep -q "^${p} "||{ opkg update 2>/dev/null;opkg install "$p" 2>/dev/null; }; done
+
+# 检测包管理器
+if command -v opkg >/dev/null 2>&1; then
+    PKG="opkg"
+    for p in curl jsonfilter; do opkg list-installed 2>/dev/null|grep -q "^${p} "||{ opkg update 2>/dev/null;opkg install "$p" 2>/dev/null; }; done
+elif command -v apk >/dev/null 2>&1; then
+    PKG="apk"
+    for p in curl jsonfilter; do apk info -e "$p" >/dev/null 2>&1 || apk add "$p" 2>/dev/null; done
+fi
+
 [ -f /etc/init.d/minigate ] && /etc/init.d/minigate stop 2>/dev/null || true
 mkdir -p /usr/lib/minigate /etc/minigate/{acme,certs,nginx/sites}
 cp "$D"/root/usr/lib/minigate/*.sh /usr/lib/minigate/; chmod +x /usr/lib/minigate/*.sh

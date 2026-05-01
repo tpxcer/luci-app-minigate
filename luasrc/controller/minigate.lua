@@ -6,6 +6,7 @@ function index()
     entry({"admin","services","minigate","ddns"}, cbi("minigate/ddns"), "动态DNS", 20)
     entry({"admin","services","minigate","acme"}, cbi("minigate/acme"), "SSL 证书", 30)
     entry({"admin","services","minigate","proxy"}, cbi("minigate/proxy"), "反向代理", 40)
+    entry({"admin","services","minigate","login_guard"}, cbi("minigate/login_guard"), "登录防护", 45)
     entry({"admin","services","minigate","log"}, template("minigate/log"), "日志", 50)
     entry({"admin","services","minigate","status"}, call("action_status")).leaf=true
     entry({"admin","services","minigate","get_log"}, call("action_get_log")).leaf=true
@@ -14,6 +15,10 @@ function index()
     entry({"admin","services","minigate","ddns_sync"}, call("action_ddns_sync")).leaf=true
     entry({"admin","services","minigate","proxy_access"}, call("action_proxy_access")).leaf=true
     entry({"admin","services","minigate","geo_lookup"}, call("action_geo_lookup")).leaf=true
+    entry({"admin","services","minigate","lg_status"}, call("action_lg_status")).leaf=true
+    entry({"admin","services","minigate","lg_ban"}, call("action_lg_ban")).leaf=true
+    entry({"admin","services","minigate","lg_unban"}, call("action_lg_unban")).leaf=true
+    entry({"admin","services","minigate","lg_flush"}, call("action_lg_flush")).leaf=true
 end
 
 function action_status()
@@ -244,4 +249,94 @@ function action_geo_lookup()
 
     luci.http.prepare_content("application/json")
     luci.http.write_json({ ip = ip, geo = geo or "未知" })
+end
+
+-- ============== 登录防护 API ==============
+
+function action_lg_status()
+    local sys = require "luci.sys"
+    local uci = require "luci.model.uci".cursor()
+
+    local enabled = uci:get("minigate","login_guard","enabled") or "0"
+    local threshold = tonumber(uci:get("minigate","login_guard","threshold")) or 3
+    local bantime = tonumber(uci:get("minigate","login_guard","bantime")) or 43200
+    local window_s = tonumber(uci:get("minigate","login_guard","window")) or 600
+
+    -- 服务是否在跑
+    local pid_out = sys.exec("pgrep -f '/usr/lib/minigate/login_guard.sh run' 2>/dev/null")
+    local running = (pid_out ~= nil and pid_out:match("%d") ~= nil)
+
+    -- 已封禁列表（解析 nft -j 输出）
+    local banned = {}
+    local raw = sys.exec("nft -j list set inet fw4 login_banned_v4 2>/dev/null") or ""
+    -- 简单正则提取每个 elem 的 val + expires
+    for v, e in raw:gmatch('"val":"([0-9%.]+)"[^}]-"expires":(%d+)') do
+        banned[#banned+1] = { ip = v, remaining = tonumber(e) }
+    end
+    -- 按剩余时间倒序
+    table.sort(banned, function(a,b) return a.remaining > b.remaining end)
+
+    -- 失败计数中（读 /var/run/minigate/login-guard/counters/）
+    local watching = {}
+    local counter_dir = "/var/run/minigate/login-guard/counters"
+    local now = os.time()
+    local list_out = sys.exec("ls " .. counter_dir .. " 2>/dev/null") or ""
+    for ip in list_out:gmatch("[^\n]+") do
+        local fh = io.open(counter_dir .. "/" .. ip, "r")
+        if fh then
+            local first, count = fh:read("*l"):match("(%d+)%s+(%d+)")
+            fh:close()
+            if first and count then
+                watching[#watching+1] = {
+                    ip = ip,
+                    count = tonumber(count),
+                    age = now - tonumber(first)
+                }
+            end
+        end
+    end
+
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({
+        enabled = enabled,
+        running = running,
+        threshold = threshold,
+        bantime = bantime,
+        window = window_s,
+        banned = banned,
+        watching = watching
+    })
+end
+
+function action_lg_ban()
+    local sys = require "luci.sys"
+    local ip = luci.http.formvalue("ip") or ""
+    if not ip:match("^%d+%.%d+%.%d+%.%d+$") then
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({success=false, error="无效 IP"})
+        return
+    end
+    local rc = sys.call("/bin/sh /usr/lib/minigate/login_guard.sh ban '" .. ip .. "' >/dev/null 2>&1")
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({success = (rc == 0), ip = ip})
+end
+
+function action_lg_unban()
+    local sys = require "luci.sys"
+    local ip = luci.http.formvalue("ip") or ""
+    if not ip:match("^%d+%.%d+%.%d+%.%d+$") then
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({success=false, error="无效 IP"})
+        return
+    end
+    local rc = sys.call("/bin/sh /usr/lib/minigate/login_guard.sh unban '" .. ip .. "' >/dev/null 2>&1")
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({success = (rc == 0), ip = ip})
+end
+
+function action_lg_flush()
+    local sys = require "luci.sys"
+    local rc = sys.call("/bin/sh /usr/lib/minigate/login_guard.sh flush >/dev/null 2>&1")
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({success = (rc == 0)})
 end

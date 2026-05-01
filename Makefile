@@ -1,14 +1,14 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-minigate
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.2.0
 PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=MiniGate
 
-LUCI_TITLE:=LuCI - MiniGate (DDNS + ACME + Reverse Proxy)
-LUCI_DESCRIPTION:=Lightweight gateway management for OpenWrt: Cloudflare DDNS, Let's Encrypt SSL certificates, and Nginx reverse proxy with LuCI web interface.
-LUCI_DEPENDS:=+luci-base +nginx-ssl +openssl-util +wget +curl +jsonfilter +coreutils-stat
+LUCI_TITLE:=LuCI - MiniGate (DDNS + ACME + Reverse Proxy + Login Guard)
+LUCI_DESCRIPTION:=Lightweight gateway management for OpenWrt: Cloudflare DDNS, Let's Encrypt SSL certificates, Nginx reverse proxy, and SSH/LuCI brute-force ban (Login Guard) with LuCI web interface.
+LUCI_DEPENDS:=+luci-base +nginx-ssl +openssl-util +wget +curl +jsonfilter +coreutils-stat +nftables
 LUCI_PKGARCH:=all
 
 define Package/$(PKG_NAME)/conffiles
@@ -31,6 +31,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) ./root/usr/lib/minigate/ddns.sh $(1)/usr/lib/minigate/
 	$(INSTALL_BIN) ./root/usr/lib/minigate/acme.sh $(1)/usr/lib/minigate/
 	$(INSTALL_BIN) ./root/usr/lib/minigate/proxy.sh $(1)/usr/lib/minigate/
+	$(INSTALL_BIN) ./root/usr/lib/minigate/login_guard.sh $(1)/usr/lib/minigate/
 
 	# Config
 	$(INSTALL_DIR) $(1)/etc/config
@@ -45,6 +46,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/minigate/certs
 	$(INSTALL_DIR) $(1)/etc/minigate/nginx
 	$(INSTALL_DIR) $(1)/etc/minigate/nginx/sites
+	$(INSTALL_DIR) $(1)/etc/minigate/login-guard
 
 	# i18n / translations
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n

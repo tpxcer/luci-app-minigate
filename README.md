@@ -1,6 +1,6 @@
 # MiniGate - OpenWrt 轻量网关管理
 
-一个类似 Lucky 的轻量级 OpenWrt 应用，提供三大核心功能：DDNS、SSL证书、反向代理。
+一个类似 Lucky 的轻量级 OpenWrt 应用，提供四大核心功能：DDNS、SSL 证书、反向代理、登录防护。
 
 ## 功能特性
 
@@ -27,6 +27,17 @@
 - 安全 Headers（HSTS 等）
 - 多站点管理
 - **直接 IP 访问拒绝**：只允许域名访问，扫描器直接断开
+
+### 🛡 登录防护 (Login Guard) **[v1.2.0 新增]**
+- 监控 **SSH（dropbear）** 和 **LuCI 网页** 登录失败
+- 在「失败窗口」内累积达到阈值（默认 3 次/10 分钟）→ 自动用 nftables 封禁源 IP
+- 可配置封禁时长（1 小时 / 6 小时 / **12 小时（默认）** / 24 小时 / 1 周 / 30 天）
+- **LAN 私有段自动豁免**（192.168.x / 10.x / 127.x / 172.16-31.x），可加额外白名单
+- **滑动时间窗口**：超过窗口未再失败则计数自动清零
+- 持久化存储 `/etc/minigate/login-guard/bans.txt`，重启/固件升级后已生效封禁自动恢复
+- LuCI 页面实时显示封禁列表、剩余时间、归属地（结合归属地查询 API）
+- 支持网页**一键解封**、**手动封禁**、**清空全部**
+- 后台 watchdog 每 5 分钟自检 nft set，防 fw4 reload 后规则丢失
 
 ### 👁 访客追踪
 - 总览页面实时显示访客 IP、归属地、在线状态
@@ -232,15 +243,17 @@ luci-app-minigate/
 │   │   ├── general.lua                # 总览（含访客追踪）
 │   │   ├── ddns.lua                   # DDNS（IPv4/IPv6）
 │   │   ├── acme.lua                   # ACME 证书
-│   │   └── proxy.lua                  # 反向代理
+│   │   ├── proxy.lua                  # 反向代理
+│   │   └── login_guard.lua            # 登录防护
 │   └── view/minigate/log.htm          # 日志页面
 └── root/
-    ├── etc/config/minigate            # UCI 配置
-    ├── etc/init.d/minigate            # 服务脚本
+    ├── etc/config/minigate            # UCI 配置（含 login_guard 段）
+    ├── etc/init.d/minigate            # 服务脚本（启停含 login_guard）
     └── usr/lib/minigate/
         ├── ddns.sh                    # DDNS（双栈）
         ├── acme.sh                    # 证书管理
-        └── proxy.sh                   # 反代（IPv6+访问日志+IP拒绝）
+        ├── proxy.sh                   # 反代（IPv6+访问日志+IP拒绝）
+        └── login_guard.sh             # 登录防护 watcher + CLI
 ```
 
 ## 依赖
@@ -250,8 +263,16 @@ luci-app-minigate/
 - `openssl-util` - 证书工具
 - `curl` - HTTP 客户端
 - `jsonfilter` - JSON 解析
+- `nftables` - 登录防护用（OpenWrt 22.03+ / ImmortalWrt 默认已装）
 
 ## 更新日志
+
+### v1.2.0
+- ✨ 新增 **登录防护 (Login Guard)** —— SSH/LuCI 失败登录达到阈值自动封禁源 IP
+- ✨ LuCI 网页：实时封禁列表 + 归属地 + 一键解封/封禁/清空
+- ✨ 持久化封禁，重启/固件升级后自动恢复
+- ✨ Watchdog 自检 nftables 资源，防 fw4 reload 后失效
+- 🔧 install.sh 自动清理旧的独立 login-guard 部署（如有）+ 迁移 bans.txt
 
 ### v1.1.0
 - ✨ DDNS 支持 IPv6 / 双栈模式（A + AAAA 记录）

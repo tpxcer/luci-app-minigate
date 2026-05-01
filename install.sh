@@ -4,23 +4,58 @@ D="$(cd "$(dirname "$0")" && pwd)"
 echo ""; echo "==== MiniGate 安装 ===="; echo ""
 [ "$(id -u)" = "0" ] || { echo "[!] 需要root"; exit 1; }
 
-# 检测包管理器
+# 检测包管理器 + 安装依赖（含 nftables，登录防护需要）
 if command -v opkg >/dev/null 2>&1; then
     PKG="opkg"
-    for p in curl jsonfilter; do opkg list-installed 2>/dev/null|grep -q "^${p} "||{ opkg update 2>/dev/null;opkg install "$p" 2>/dev/null; }; done
+    for p in curl jsonfilter nftables; do opkg list-installed 2>/dev/null|grep -q "^${p} "||{ opkg update 2>/dev/null;opkg install "$p" 2>/dev/null; }; done
 elif command -v apk >/dev/null 2>&1; then
     PKG="apk"
-    for p in curl jsonfilter; do apk info -e "$p" >/dev/null 2>&1 || apk add "$p" 2>/dev/null; done
+    for p in curl jsonfilter nftables; do apk info -e "$p" >/dev/null 2>&1 || apk add "$p" 2>/dev/null; done
 fi
 
 [ -f /etc/init.d/minigate ] && /etc/init.d/minigate stop 2>/dev/null || true
-mkdir -p /usr/lib/minigate /etc/minigate/{acme,certs,nginx/sites}
+
+# 清理旧的独立 login-guard 部署（如有）
+[ -f /etc/init.d/login-guard ] && {
+    /etc/init.d/login-guard stop 2>/dev/null || true
+    /etc/init.d/login-guard disable 2>/dev/null || true
+    rm -f /etc/init.d/login-guard
+    rm -f /usr/sbin/login-guard /usr/sbin/login-guard.sh
+    # 迁移 bans.txt（如有）
+    [ -f /etc/login-guard/bans.txt ] && {
+        mkdir -p /etc/minigate/login-guard
+        cp /etc/login-guard/bans.txt /etc/minigate/login-guard/bans.txt
+    }
+    echo "[*] 已清理旧的独立 login-guard"
+}
+
+mkdir -p /usr/lib/minigate /etc/minigate/{acme,certs,nginx/sites,login-guard}
 cp "$D"/root/usr/lib/minigate/*.sh /usr/lib/minigate/; chmod +x /usr/lib/minigate/*.sh
 cp "$D"/root/etc/init.d/minigate /etc/init.d/; chmod +x /etc/init.d/minigate
-[ -f /etc/config/minigate ]&&echo "[*] 保留配置"||cp "$D"/root/etc/config/minigate /etc/config/
+
+# 配置：保留旧的，但确保有 login_guard 区段
+if [ -f /etc/config/minigate ]; then
+    echo "[*] 保留现有配置"
+    grep -q "config login_guard" /etc/config/minigate || cat >> /etc/config/minigate <<EOF
+
+config login_guard 'login_guard'
+	option enabled '0'
+	option threshold '3'
+	option window '600'
+	option bantime '43200'
+EOF
+else
+    cp "$D"/root/etc/config/minigate /etc/config/
+fi
+
 mkdir -p /usr/lib/lua/luci/{controller,model/cbi/minigate,view/minigate}
 cp "$D"/luasrc/controller/minigate.lua /usr/lib/lua/luci/controller/
 cp "$D"/luasrc/model/cbi/minigate/*.lua /usr/lib/lua/luci/model/cbi/minigate/
 cp "$D"/luasrc/view/minigate/*.htm /usr/lib/lua/luci/view/minigate/
-rm -rf /tmp/luci-* 2>/dev/null; /etc/init.d/minigate enable 2>/dev/null
-echo ""; echo "==== 安装完成 ===="; echo "LuCI -> 服务 -> MiniGate"; echo ""
+rm -rf /tmp/luci-* 2>/dev/null
+/etc/init.d/minigate enable 2>/dev/null
+/etc/init.d/minigate start 2>/dev/null || true
+echo ""; echo "==== 安装完成 ===="
+echo "LuCI -> 服务 -> MiniGate"
+echo "登录防护 tab 默认关闭，到 LuCI 启用即可。"
+echo ""

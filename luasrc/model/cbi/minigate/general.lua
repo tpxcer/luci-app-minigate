@@ -142,7 +142,13 @@ d1.innerHTML='<span style="color:'+c+'">'+l+'</span>';
 var info=(e.domain||'')+'\n';
 if(e.last_ip)info+='A: '+e.last_ip+'\n';
 if(e.last_ip6)info+='AAAA: '+e.last_ip6+'\n';
-if(e.status_msg)info+=e.status_msg+'\n';
+var sm=e.status_msg||'';
+if(sm){
+    var dupA=e.last_ip&&sm.indexOf('A:'+e.last_ip)>=0;
+    var dupAAAA=e.last_ip6&&sm.indexOf('AAAA:'+e.last_ip6)>=0;
+    var onlyIpStatus=sm.replace(/A:[^;]+;?/g,'').replace(/AAAA:[^;]+;?/g,'').replace(/\s+/g,'')=='';
+    if(!(onlyIpStatus&&(dupA||dupAAAA)))info+=sm+'\n';
+}
 if(e.last_update)info+='\u66f4\u65b0: '+e.last_update+'\n';
 if(e.next_sync)info+='\u4e0b\u6b21: '+e.next_sync;
 if(d.ddns_list.length>1)info+='\n(+'+(d.ddns_list.length-1)+' \u6761\u8bb0\u5f55)';

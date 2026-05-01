@@ -44,12 +44,21 @@ o.cfgvalue = function()
 </div>
 
 <div id="mg-visitors" style="margin-top:16px;background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #9c27b0">
-<div style="font-size:12px;color:#666;margin-bottom:8px">访问记录 <span id="mg-v-count" style="color:#9c27b0"></span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap">
+<div style="font-size:12px;color:#666">访问记录 <span id="mg-v-count" style="color:#9c27b0"></span></div>
+<label style="font-size:12px;color:#666;white-space:nowrap">显示
+<select id="mg-v-limit" style="padding:3px 8px;border-radius:4px;border:1px solid #ccc;font-size:12px;margin:0 4px">
+<option value="10" selected>10</option>
+<option value="50">50</option>
+<option value="100">100</option>
+</select>条</label>
+</div>
 <div id="mg-v-list" style="font-size:12px;color:#888">加载中...</div>
 </div>
 
 <script type="text/javascript">
 var _geoCache={};
+var _visitorLimit=localStorage.getItem('mgVisitorLimit')||'10';
 
 function fmtT(iso){
     if(!iso)return'--';
@@ -66,7 +75,7 @@ function queryGeo(ip,cb){
 }
 
 function loadVisitors(){
-    XHR.get(']] .. au .. [[',null,function(x,d){
+    XHR.get(']] .. au .. [[',{limit:_visitorLimit},function(x,d){
         var el=document.getElementById('mg-v-list');
         var ct=document.getElementById('mg-v-count');
         if(!d||!d.visitors||d.visitors.length===0){
@@ -107,6 +116,16 @@ function loadVisitors(){
         }
         nextGeo();
     });
+}
+
+var limitSel=document.getElementById('mg-v-limit');
+if(limitSel){
+    limitSel.value=_visitorLimit;
+    limitSel.onchange=function(){
+        _visitorLimit=this.value;
+        localStorage.setItem('mgVisitorLimit',_visitorLimit);
+        loadVisitors();
+    };
 }
 
 XHR.poll(6,']] .. su .. [[',null,function(x,d){

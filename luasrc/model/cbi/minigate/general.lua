@@ -48,9 +48,9 @@ o.cfgvalue = function()
 <div style="font-size:12px;color:#666">访问记录 <span id="mg-v-count" style="color:#9c27b0"></span></div>
 <label style="font-size:12px;color:#666;white-space:nowrap">显示
 <select id="mg-v-limit" style="padding:3px 8px;border-radius:4px;border:1px solid #ccc;font-size:12px;margin:0 4px">
-<option value="10" selected>10</option>
+<option value="5" selected>5</option>
+<option value="20">20</option>
 <option value="50">50</option>
-<option value="100">100</option>
 </select>条</label>
 </div>
 <div id="mg-v-list" style="font-size:12px;color:#888">加载中...</div>
@@ -58,7 +58,8 @@ o.cfgvalue = function()
 
 <script type="text/javascript">
 var _geoCache={};
-var _visitorLimit=localStorage.getItem('mgVisitorLimit')||'10';
+var _visitorLimit=localStorage.getItem('mgVisitorLimit')||'5';
+if(_visitorLimit!='5'&&_visitorLimit!='20'&&_visitorLimit!='50')_visitorLimit='5';
 
 function fmtT(iso){
     if(!iso)return'--';

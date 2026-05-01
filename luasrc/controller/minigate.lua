@@ -139,9 +139,9 @@ end
 
 function action_proxy_access()
     local sys = require "luci.sys"
-    local limit = tonumber(luci.http.formvalue("limit") or "10") or 10
-    if limit ~= 50 and limit ~= 100 then
-        limit = 10
+    local limit = tonumber(luci.http.formvalue("limit") or "5") or 5
+    if limit ~= 20 and limit ~= 50 then
+        limit = 5
     end
     -- 读取最近 500 条日志，按 IP 聚合
     local raw = sys.exec("tail -n 500 /var/log/minigate-access.log 2>/dev/null") or ""
@@ -171,7 +171,7 @@ function action_proxy_access()
         return visitors[a].last_time > visitors[b].last_time
     end)
 
-    -- 按前端选择取前 N 个，默认 10 个
+    -- 按前端选择取前 N 个，默认 5 个
     local result = {}
     local now = os.time()
     for i = 1, math.min(#order, limit) do

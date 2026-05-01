@@ -137,8 +137,9 @@ handle_failure() {
 
     if [ "$count" -ge "$THRESHOLD" ]; then
         # 加 ban 前再确认 nft 还在（fw4 可能重载）
+        local ban_target="$ip"
         ensure_nft && restore_bans
-        ban_ip "$ip"
+        ban_ip "$ban_target"
     fi
 }
 

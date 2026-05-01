@@ -13,7 +13,12 @@ start_login_guard() {
 }
 
 stop_login_guard() {
-    pkill -f '/usr/lib/minigate/login_guard.sh run' >/dev/null 2>&1
+    local pids
+    pids=$(pgrep -f '/usr/lib/minigate/login_guard.sh run' 2>/dev/null)
+    [ -n "$pids" ] && kill $pids >/dev/null 2>&1
+    sleep 1
+    pids=$(pgrep -f '/usr/lib/minigate/login_guard.sh run' 2>/dev/null)
+    [ -n "$pids" ] && kill -9 $pids >/dev/null 2>&1
     # 移除 nft 中的 drop 规则（保留 set，让现有封禁继续生效到自然过期）
     local handle=$(nft -a list chain inet fw4 input 2>/dev/null | grep "minigate-login-guard" | grep -oE 'handle [0-9]+' | awk '{print $2}')
     [ -n "$handle" ] && nft delete rule inet fw4 input handle "$handle" 2>/dev/null

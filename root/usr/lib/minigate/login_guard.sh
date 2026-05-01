@@ -22,6 +22,7 @@ RUN_DIR=/var/run/minigate/login-guard
 BANS_FILE="$DATA_DIR/bans.txt"
 COUNTER_DIR="$RUN_DIR/counters"
 LOG_FILE=/var/log/minigate-login-guard.log
+ACCESS_LOG=/var/log/minigate-access.log
 SET="login_banned_v4"
 TABLE="inet fw4"
 
@@ -145,6 +146,28 @@ extract_ip() {
     echo "$1" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | head -1
 }
 
+extract_json_field() {
+    local key="$1"
+    sed -n "s/.*\"${key}\":\"\([^\"]*\)\".*/\1/p" | head -1
+}
+
+is_luci_failed_post() {
+    local line="$1"
+    echo "$line" | grep -q '"method":"POST"' || return 1
+    echo "$line" | grep -q '"status":403' || return 1
+    echo "$line" | grep -Eq '"uri":"/cgi-bin/luci(/|")' || return 1
+    return 0
+}
+
+access_log_loop() {
+    touch "$ACCESS_LOG" 2>/dev/null
+    tail -n 0 -f "$ACCESS_LOG" 2>/dev/null | while read -r line; do
+        is_luci_failed_post "$line" || continue
+        ip=$(echo "$line" | extract_json_field client)
+        handle_failure "$ip"
+    done
+}
+
 # === 后台 watchdog：每 5 分钟检查 nft 资源 ===
 watchdog_loop() {
     while true; do
@@ -168,6 +191,10 @@ run_watcher() {
 
     # 后台 watchdog
     watchdog_loop &
+
+    # MiniGate 反代访问 LuCI 时，LuCI 日志只会看到反代内网 IP。
+    # 这里补充监听 nginx access log，用 JSON client 字段记录真实公网 IP。
+    access_log_loop &
 
     # 主循环：监控系统日志
     logread -f 2>/dev/null | while read -r line; do

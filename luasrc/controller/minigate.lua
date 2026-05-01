@@ -267,11 +267,22 @@ function action_lg_status()
     local running = (pid_out ~= nil and pid_out:match("%d") ~= nil)
 
     -- 已封禁列表（解析 nft -j 输出）
+    -- 注意：nft -j 在 key 和 value 之间有空格，要用 %s* 匹配
+    -- 每个 elem 内 val 在前 expires 在后，分别提取后按序号配对（避免跨 elem 匹配错乱）
     local banned = {}
     local raw = sys.exec("nft -j list set inet fw4 login_banned_v4 2>/dev/null") or ""
-    -- 简单正则提取每个 elem 的 val + expires
-    for v, e in raw:gmatch('"val":"([0-9%.]+)"[^}]-"expires":(%d+)') do
-        banned[#banned+1] = { ip = v, remaining = tonumber(e) }
+    local ips = {}
+    for v in raw:gmatch('"val"%s*:%s*"([0-9%.]+)"') do
+        ips[#ips+1] = v
+    end
+    local exps = {}
+    for e in raw:gmatch('"expires"%s*:%s*(%d+)') do
+        exps[#exps+1] = tonumber(e)
+    end
+    for i = 1, #ips do
+        if exps[i] then
+            banned[#banned+1] = { ip = ips[i], remaining = exps[i] }
+        end
     end
     -- 按剩余时间倒序
     table.sort(banned, function(a,b) return a.remaining > b.remaining end)

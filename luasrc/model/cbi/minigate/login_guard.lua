@@ -159,6 +159,7 @@ function lgRefresh(){
             var h2='<table style="width:100%;border-collapse:collapse">';
             h2+='<tr style="border-bottom:1px solid #e0e0e0;color:#666;font-size:11px">';
             h2+='<td style="padding:4px 8px">IP 地址</td>';
+            h2+='<td style="padding:4px 8px">归属地</td>';
             h2+='<td style="padding:4px 8px">失败次数</td>';
             h2+='<td style="padding:4px 8px">距首次失败</td></tr>';
             for(var j=0;j<d.watching.length;j++){
@@ -167,12 +168,23 @@ function lgRefresh(){
                 var color=pct>=66?'#f44336':(pct>=33?'#ff9800':'#999');
                 h2+='<tr style="border-bottom:1px solid #f0f0f0">';
                 h2+='<td style="padding:5px 8px"><code style="background:#fff3e0;padding:1px 6px;border-radius:3px">'+w.ip+'</code></td>';
+                h2+='<td style="padding:5px 8px" id="lg-watch-geo-'+j+'"><span style="color:#bbb">查询中...</span></td>';
                 h2+='<td style="padding:5px 8px"><span style="color:'+color+';font-weight:bold">'+w.count+' / '+d.threshold+'</span></td>';
                 h2+='<td style="padding:5px 8px">'+fmtDuration(w.age)+'</td>';
                 h2+='</tr>';
             }
             h2+='</table>';
             wEl.innerHTML=h2;
+            var wq=0;
+            (function nextWatchingGeo(){
+                if(wq>=d.watching.length)return;
+                var idx=wq; wq++;
+                lgQueryGeo(d.watching[idx].ip,function(loc){
+                    var ge=document.getElementById('lg-watch-geo-'+idx);
+                    if(ge) ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
+                    setTimeout(nextWatchingGeo,150);
+                });
+            })();
         }
     });
 }

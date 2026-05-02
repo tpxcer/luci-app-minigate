@@ -25,35 +25,66 @@ o.cfgvalue = function()
     local au = luci.dispatcher.build_url("admin/services/minigate/proxy_access")
     local gu = luci.dispatcher.build_url("admin/services/minigate/geo_lookup")
     return [[
-<div id="mg" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-<div id="mg-ddns-card" style="background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #4caf50">
-<div style="font-size:12px;color:#666">动态DNS</div>
-<div id="mg-d1" style="font-size:16px;font-weight:bold;margin:5px 0">--</div>
-<div id="mg-d2" style="font-size:12px;color:#888"></div>
+<style>
+.mg-wrap{display:flex;flex-direction:column;gap:16px}
+.mg-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.mg-card{position:relative;min-height:154px;border-radius:8px;padding:18px 18px 16px;background:#262626;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
+.mg-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,#777)}
+.mg-card-title{font-size:12px;color:#a8a8a8;margin-bottom:12px}
+.mg-card-state{font-size:18px;font-weight:700;margin-bottom:14px;line-height:1.25}
+.mg-card-body{font-size:12px;color:#c8c8c8;line-height:1.9;word-break:break-word}
+.mg-card-body a,.mg-link{color:#56d87a;text-decoration:none}
+.mg-card-body a:hover,.mg-link:hover{text-decoration:underline}
+.mg-panel{border-radius:8px;background:#262626;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.16);overflow:hidden}
+.mg-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.mg-panel-title{font-size:13px;font-weight:700;color:#ededed}
+.mg-count{color:#c16cff;font-weight:600}
+.mg-limit-label{display:flex;align-items:center;gap:6px;font-size:12px;color:#bdbdbd;white-space:nowrap}
+.mg-select{height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:#1d1d1d;color:#eee;padding:0 8px;font-size:12px}
+.mg-table-wrap{overflow-x:auto}
+.mg-table{width:100%;border-collapse:collapse;min-width:760px}
+.mg-table th{padding:10px 12px;color:#9d9d9d;font-size:11px;font-weight:600;text-align:left;border-bottom:1px solid rgba(255,255,255,.08);background:#202020}
+.mg-table td{padding:11px 12px;color:#dddddd;font-size:12px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
+.mg-table tr:hover td{background:#2e2e2e}
+.mg-status{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.mg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#777}
+.mg-dot.on{background:#4caf50;box-shadow:0 0 0 3px rgba(76,175,80,.14)}
+.mg-ip{display:inline-block;border-radius:6px;background:#383b45;color:#f2f4ff;padding:2px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+.mg-empty{padding:18px 16px;color:#aaa;font-size:12px}
+@media(max-width:900px){.mg-status-grid{grid-template-columns:1fr}.mg-card{min-height:auto}}
+</style>
+
+<div class="mg-wrap">
+<div id="mg" class="mg-status-grid">
+<div id="mg-ddns-card" class="mg-card" style="--accent:#4caf50">
+<div class="mg-card-title">动态 DNS</div>
+<div id="mg-d1" class="mg-card-state">--</div>
+<div id="mg-d2" class="mg-card-body"></div>
 </div>
-<div style="background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #2196f3">
-<div style="font-size:12px;color:#666">SSL/TLS 证书</div>
-<div id="mg-a1" style="font-size:16px;font-weight:bold;margin:5px 0">--</div>
-<div id="mg-a2" style="font-size:12px;color:#888"></div>
+<div id="mg-cert-card" class="mg-card" style="--accent:#2196f3">
+<div class="mg-card-title">SSL/TLS 证书</div>
+<div id="mg-a1" class="mg-card-state">--</div>
+<div id="mg-a2" class="mg-card-body"></div>
 </div>
-<div style="background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #ff9800">
-<div style="font-size:12px;color:#666">反向代理</div>
-<div id="mg-p1" style="font-size:16px;font-weight:bold;margin:5px 0">--</div>
-<div id="mg-p2" style="font-size:12px;color:#888"></div>
+<div id="mg-proxy-card" class="mg-card" style="--accent:#ff9800">
+<div class="mg-card-title">反向代理</div>
+<div id="mg-p1" class="mg-card-state">--</div>
+<div id="mg-p2" class="mg-card-body"></div>
 </div>
 </div>
 
-<div id="mg-visitors" style="margin-top:16px;background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #9c27b0">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap">
-<div style="font-size:12px;color:#666">访问记录 <span id="mg-v-count" style="color:#9c27b0"></span></div>
-<label style="font-size:12px;color:#666;white-space:nowrap">显示
-<select id="mg-v-limit" style="padding:3px 8px;border-radius:4px;border:1px solid #ccc;font-size:12px;margin:0 4px">
+<div id="mg-visitors" class="mg-panel">
+<div class="mg-panel-head">
+<div class="mg-panel-title">访问记录 <span id="mg-v-count" class="mg-count"></span></div>
+<label class="mg-limit-label">显示
+<select id="mg-v-limit" class="mg-select">
 <option value="5" selected>5</option>
 <option value="20">20</option>
 <option value="50">50</option>
 </select>条</label>
 </div>
-<div id="mg-v-list" style="font-size:12px;color:#888">加载中...</div>
+<div id="mg-v-list" class="mg-table-wrap"><div class="mg-empty">加载中...</div></div>
+</div>
 </div>
 
 <script type="text/javascript">
@@ -80,29 +111,29 @@ function loadVisitors(){
         var el=document.getElementById('mg-v-list');
         var ct=document.getElementById('mg-v-count');
         if(!d||!d.visitors||d.visitors.length===0){
-            el.innerHTML='<span style="color:#999">暂无访问记录</span>';
+            el.innerHTML='<div class="mg-empty">暂无访问记录</div>';
             ct.textContent='';
             return;
         }
         ct.textContent='('+d.visitors.length+' 个IP)';
-        var h='<table style="width:100%;border-collapse:collapse">';
-        h+='<tr style="border-bottom:1px solid #e0e0e0;color:#666"><td style="padding:4px 8px">状态</td><td style="padding:4px 8px">IP 地址</td><td style="padding:4px 8px">归属地</td><td style="padding:4px 8px">最后访问</td><td style="padding:4px 8px">域名</td><td style="padding:4px 8px">次数</td></tr>';
+        var h='<table class="mg-table">';
+        h+='<thead><tr><th>状态</th><th>IP 地址</th><th>归属地</th><th>最后访问</th><th>域名</th><th>次数</th></tr></thead><tbody>';
         for(var i=0;i<d.visitors.length;i++){
             var v=d.visitors[i];
             var dot=v.online
-                ?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;margin-right:4px" title="在线"></span>'
-                :'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;margin-right:4px" title="离线"></span>';
-            var stxt=v.online?'<span style="color:#4caf50;font-size:11px">在线</span>':'<span style="color:#999;font-size:11px">离线</span>';
-            h+='<tr style="border-bottom:1px solid #f0f0f0">';
-            h+='<td style="padding:5px 8px;white-space:nowrap">'+dot+stxt+'</td>';
-            h+='<td style="padding:5px 8px"><code style="background:#e8eaf6;padding:1px 6px;border-radius:3px;font-size:12px">'+v.ip+'</code></td>';
-            h+='<td style="padding:5px 8px" id="geo-'+i+'"><span style="color:#bbb;font-size:11px">查询中...</span></td>';
-            h+='<td style="padding:5px 8px;white-space:nowrap;font-size:11px">'+fmtT(v.last_time)+'</td>';
-            h+='<td style="padding:5px 8px;font-size:11px">'+v.domain+'</td>';
-            h+='<td style="padding:5px 8px;font-size:11px">'+v.count+'</td>';
+                ?'<span class="mg-dot on" title="在线"></span>'
+                :'<span class="mg-dot" title="离线"></span>';
+            var stxt=v.online?'<span style="color:#72d987">在线</span>':'<span style="color:#a6a6a6">离线</span>';
+            h+='<tr>';
+            h+='<td><span class="mg-status">'+dot+stxt+'</span></td>';
+            h+='<td><code class="mg-ip">'+v.ip+'</code></td>';
+            h+='<td id="geo-'+i+'"><span style="color:#999">查询中...</span></td>';
+            h+='<td style="white-space:nowrap">'+fmtT(v.last_time)+'</td>';
+            h+='<td>'+v.domain+'</td>';
+            h+='<td>'+v.count+'</td>';
             h+='</tr>';
         }
-        h+='</table>';
+        h+='</tbody></table>';
         el.innerHTML=h;
         // 逐个查询归属地（避免并发太多）
         var qi=0;
@@ -137,7 +168,7 @@ if(d.ddns_list&&d.ddns_list.length>0){
 var e=d.ddns_list[0];
 var c=e.status=='ok'?'#4caf50':(e.status=='partial'?'#ff9800':(e.enabled=='1'?'#f44336':'#999'));
 var l=e.status=='ok'?'\u2713 \u8fd0\u884c\u4e2d':(e.status=='partial'?'\u26a0 \u90e8\u5206\u6210\u529f':(e.enabled=='1'?'\u26a0 \u5f02\u5e38':'\u672a\u542f\u7528'));
-card.style.borderLeftColor=c;
+card.style.setProperty('--accent',c);
 d1.innerHTML='<span style="color:'+c+'">'+l+'</span>';
 var info=(e.domain||'')+'\n';
 if(e.last_ip)info+='A: '+e.last_ip+'\n';
@@ -153,7 +184,7 @@ if(e.last_update)info+='\u66f4\u65b0: '+e.last_update+'\n';
 if(e.next_sync)info+='\u4e0b\u6b21: '+e.next_sync;
 if(d.ddns_list.length>1)info+='\n(+'+(d.ddns_list.length-1)+' \u6761\u8bb0\u5f55)';
 d2.innerHTML=info.replace(/\n/g,'<br>');
-}else{d1.innerHTML='<span style="color:#999">\u672a\u914d\u7f6e</span>';d2.textContent='';card.style.borderLeftColor='#999';}
+}else{d1.innerHTML='<span style="color:#999">\u672a\u914d\u7f6e</span>';d2.textContent='';card.style.setProperty('--accent','#777');}
 
 var a1=document.getElementById('mg-a1'),a2=document.getElementById('mg-a2');
 if(d.acme&&d.acme.enabled=='1'){
@@ -169,7 +200,7 @@ for(var i=0;i<d.proxy_rules.length;i++){
 var r=d.proxy_rules[i];
 var url=r.scheme+'://'+r.domain+(r.listen_port!='443'&&r.listen_port!='80'?':'+r.listen_port:'');
 var v6tag=r.ipv6_listen=='1'?' <span style="color:#2196f3;font-size:10px">[IPv6]</span>':'';
-pinfo+='<div style="font-size:11px;margin-top:3px"><span style="color:#4caf50">'+url+'</span>'+v6tag+' \u2192 '+r.target+'</div>';
+pinfo+='<div><span class="mg-link">'+url+'</span>'+v6tag+' \u2192 '+r.target+'</div>';
 }}else if(d.proxy_running){pinfo='Nginx \u8fd0\u884c\u4e2d';}
 p2.innerHTML=pinfo;
 });

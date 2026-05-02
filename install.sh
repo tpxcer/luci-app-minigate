@@ -29,7 +29,8 @@ fi
     echo "[*] 已清理旧的独立 login-guard"
 }
 
-mkdir -p /usr/lib/minigate /etc/minigate/{acme,certs,nginx/sites,login-guard}
+mkdir -p /usr/lib/minigate
+mkdir -p /etc/minigate/acme /etc/minigate/certs /etc/minigate/nginx/sites /etc/minigate/login-guard
 cp "$D"/root/usr/lib/minigate/*.sh /usr/lib/minigate/; chmod +x /usr/lib/minigate/*.sh
 cp "$D"/root/etc/init.d/minigate /etc/init.d/; chmod +x /etc/init.d/minigate
 
@@ -48,7 +49,9 @@ else
     cp "$D"/root/etc/config/minigate /etc/config/
 fi
 
-mkdir -p /usr/lib/lua/luci/{controller,model/cbi/minigate,view/minigate}
+mkdir -p /usr/lib/lua/luci/controller
+mkdir -p /usr/lib/lua/luci/model/cbi/minigate
+mkdir -p /usr/lib/lua/luci/view/minigate
 cp "$D"/luasrc/controller/minigate.lua /usr/lib/lua/luci/controller/
 cp "$D"/luasrc/model/cbi/minigate/*.lua /usr/lib/lua/luci/model/cbi/minigate/
 cp "$D"/luasrc/view/minigate/*.htm /usr/lib/lua/luci/view/minigate/

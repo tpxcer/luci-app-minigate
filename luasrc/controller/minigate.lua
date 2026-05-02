@@ -276,6 +276,11 @@ function action_lg_status()
     local sys = require "luci.sys"
     local uci = require "luci.model.uci".cursor()
 
+    local watch_limit = tonumber(luci.http.formvalue("watch_limit") or "5") or 5
+    if watch_limit ~= 20 and watch_limit ~= 30 then
+        watch_limit = 5
+    end
+
     local enabled = uci:get("minigate","login_guard","enabled") or "0"
     local threshold = tonumber(uci:get("minigate","login_guard","threshold")) or 3
     local bantime = tonumber(uci:get("minigate","login_guard","bantime")) or 43200
@@ -314,8 +319,9 @@ function action_lg_status()
     for ip in list_out:gmatch("[^\n]+") do
         local fh = io.open(counter_dir .. "/" .. ip, "r")
         if fh then
-            local first, count = fh:read("*l"):match("(%d+)%s+(%d+)")
+            local line = fh:read("*l") or ""
             fh:close()
+            local first, count = line:match("(%d+)%s+(%d+)")
             if first and count then
                 watching[#watching+1] = {
                     ip = ip,
@@ -324,6 +330,17 @@ function action_lg_status()
                 }
             end
         end
+    end
+    table.sort(watching, function(a,b)
+        if a.count == b.count then
+            return a.age < b.age
+        end
+        return a.count > b.count
+    end)
+    local watching_total = #watching
+    local watching_limited = {}
+    for i = 1, math.min(watching_total, watch_limit) do
+        watching_limited[#watching_limited + 1] = watching[i]
     end
 
     luci.http.prepare_content("application/json")
@@ -334,7 +351,9 @@ function action_lg_status()
         bantime = bantime,
         window = window_s,
         banned = banned,
-        watching = watching
+        watching = watching_limited,
+        watching_total = watching_total,
+        watch_limit = watch_limit
     })
 end
 

@@ -42,6 +42,7 @@ o.cfgvalue = function()
     local threshold = tonumber(m.uci:get("minigate", "login_guard", "threshold")) or 3
     local now = os.time()
     local watching_rows = {}
+    local watching_items = {}
     local counter_dir = "/var/run/minigate/login-guard/counters"
     local list_out = sys.exec("ls " .. counter_dir .. " 2>/dev/null") or ""
     for ip in list_out:gmatch("[^\n]+") do
@@ -51,14 +52,28 @@ o.cfgvalue = function()
             fh:close()
             local first, count = line:match("^(%d+)%s+(%d+)")
             if first and count then
-                local age = now - tonumber(first)
-                watching_rows[#watching_rows + 1] =
-                    '<tr><td><code class="lg-ip">' .. esc(ip) .. '</code></td>' ..
-                    '<td><span style="color:#999">等待刷新...</span></td>' ..
-                    '<td><span style="font-weight:bold">' .. esc(count) .. ' / ' .. esc(threshold) .. '</span></td>' ..
-                    '<td>' .. esc(fmt_duration(age)) .. '</td></tr>'
+                watching_items[#watching_items + 1] = {
+                    ip = ip,
+                    count = tonumber(count) or 0,
+                    age = now - tonumber(first)
+                }
             end
         end
+    end
+    table.sort(watching_items, function(a,b)
+        if a.count == b.count then
+            return a.age < b.age
+        end
+        return a.count > b.count
+    end)
+    for i = 1, math.min(#watching_items, 30) do
+        local item = watching_items[i]
+        local style = (i > 5) and ' style="display:none"' or ''
+        watching_rows[#watching_rows + 1] =
+            '<tr class="lg-watch-row" data-ip="' .. esc(item.ip) .. '" data-index="' .. tostring(i) .. '"' .. style .. '><td><code class="lg-ip">' .. esc(item.ip) .. '</code></td>' ..
+            '<td id="lg-watch-geo-initial-' .. tostring(i) .. '"><span style="color:#999">查询中...</span></td>' ..
+            '<td><span style="font-weight:bold">' .. esc(item.count) .. ' / ' .. esc(threshold) .. '</span></td>' ..
+            '<td>' .. esc(fmt_duration(item.age)) .. '</td></tr>'
     end
 
     local initial_watching = '<div class="lg-empty">无</div>'
@@ -82,6 +97,8 @@ o.cfgvalue = function()
 .lg-panel-title{font-size:13px;font-weight:700;color:#ededed}
 .lg-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .lg-input{height:30px;min-width:180px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:#1d1d1d;color:#eee;padding:0 10px;font-size:12px;box-sizing:border-box}
+.lg-select{height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:#1d1d1d;color:#eee;padding:0 8px;font-size:12px;box-sizing:border-box}
+.lg-limit-label{display:flex;align-items:center;gap:6px;color:#aaa;font-size:12px;white-space:nowrap}
 .lg-btn{height:30px;border:0;border-radius:6px;padding:0 12px;font-size:12px;color:#fff;cursor:pointer}
 .lg-btn-primary{background:#5b55c8}
 .lg-btn-danger{background:#f08a24}
@@ -128,6 +145,15 @@ o.cfgvalue = function()
 <div class="lg-panel">
   <div class="lg-panel-head">
     <div class="lg-panel-title">失败计数中（未达阈值）</div>
+    <div class="lg-tools">
+      <label class="lg-limit-label">显示
+        <select id="lg-watch-limit" class="lg-select">
+          <option value="5">5 条</option>
+          <option value="20">20 条</option>
+          <option value="30">30 条</option>
+        </select>
+      </label>
+    </div>
   </div>
   <div id="lg-watching-list" class="lg-table-wrap">]] .. initial_watching .. [[</div>
 </div>
@@ -135,13 +161,40 @@ o.cfgvalue = function()
 
 <script type="text/javascript">
 var _lgGeoCache={};
+var _lgWatchLimit=5;
 
 function lgQueryGeo(ip,cb){
     if(_lgGeoCache[ip]){cb(_lgGeoCache[ip]);return;}
     XHR.get(']] .. gu .. [[',{ip:ip},function(x,d){
-        var v=(d&&d.geo)?d.geo:'未知';
-        _lgGeoCache[ip]=v; cb(v);
+        if(d&&d.geo){_lgGeoCache[ip]=d.geo;cb(d.geo);}
+        else{_lgGeoCache[ip]='未知';cb('未知');}
     });
+}
+
+function lgApplyInitialWatchingLimit(){
+    var rows=document.querySelectorAll('#lg-watching-list .lg-watch-row');
+    for(var i=0;i<rows.length;i++){
+        rows[i].style.display=(i<_lgWatchLimit)?'':'none';
+    }
+}
+
+function lgQueryInitialWatchingGeo(){
+    var rows=document.querySelectorAll('#lg-watching-list .lg-watch-row');
+    var qi=0;
+    function next(){
+        while(qi<rows.length && rows[qi].style.display=='none')qi++;
+        if(qi>=rows.length)return;
+        var row=rows[qi++];
+        var ip=row.getAttribute('data-ip')||'';
+        var idx=row.getAttribute('data-index')||'';
+        if(!ip){setTimeout(next,0);return;}
+        lgQueryGeo(ip,function(loc){
+            var ge=document.getElementById('lg-watch-geo-initial-'+idx);
+            if(ge)ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
+            setTimeout(next,150);
+        });
+    }
+    next();
 }
 
 function fmtDuration(s){
@@ -205,10 +258,11 @@ function lgRenderWatching(watching,threshold){
     }
     h2+='</tbody></table>';
     wEl.innerHTML=h2;
-    var wq=0;
+    // 与总览“访问记录”保持一致：逐个查询归属地，避免并发太多。
+    var qi=0;
     function nextWatchingGeo(){
-        if(wq>=watching.length)return;
-        var idx=wq++;
+        if(qi>=watching.length)return;
+        var idx=qi;qi++;
         var row=watching[idx]||{};
         if(!row.ip){
             setTimeout(nextWatchingGeo,0);
@@ -217,15 +271,18 @@ function lgRenderWatching(watching,threshold){
         lgQueryGeo(row.ip,function(loc){
             var ge=document.getElementById('lg-watch-geo-'+idx);
             if(ge) ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
-            nextWatchingGeo();
+            setTimeout(nextWatchingGeo,150);
         });
     }
-    for(var n=0;n<3;n++)nextWatchingGeo();
+    nextWatchingGeo();
 }
 
-function lgRefresh(){
-    XHR.get(']] .. lu .. [[',null,function(x,d){
-        if(!d) return;
+function lgApplyStatus(d){
+        if(!d){
+            var wEl=document.getElementById('lg-watching-list');
+            if(wEl)wEl.innerHTML='<div class="lg-empty">刷新失败，请稍后再试</div>';
+            return;
+        }
         // 服务状态
         var rEl=document.getElementById('lg-running');
         if(d.enabled=='1'){
@@ -235,7 +292,7 @@ function lgRefresh(){
             rEl.innerHTML='<span style="color:#999">未启用</span>';
         }
         document.getElementById('lg-banned-count').textContent=(d.banned||[]).length;
-        document.getElementById('lg-watching-count').textContent=(d.watching||[]).length;
+        document.getElementById('lg-watching-count').textContent=(d.watching_total!=null)?d.watching_total:(d.watching||[]).length;
 
         // 已封禁列表
         var listEl=document.getElementById('lg-banned-list');
@@ -274,11 +331,30 @@ function lgRefresh(){
             var wEl=document.getElementById('lg-watching-list');
             if(wEl)wEl.innerHTML='<div class="lg-empty">渲染失败：'+e.message+'</div>';
         }
+}
+
+function lgRefresh(){
+    XHR.get(']] .. lu .. [[',{watch_limit:_lgWatchLimit},function(x,d){
+        lgApplyStatus(d);
     });
 }
 
+var lgWatchLimitSel=document.getElementById('lg-watch-limit');
+if(lgWatchLimitSel){
+    lgWatchLimitSel.value=String(_lgWatchLimit);
+    lgWatchLimitSel.onchange=function(){
+        var v=parseInt(this.value,10);
+        _lgWatchLimit=(v==20||v==30)?v:5;
+        lgApplyInitialWatchingLimit();
+        lgQueryInitialWatchingGeo();
+        lgRefresh();
+    };
+}
+
+lgApplyInitialWatchingLimit();
+lgQueryInitialWatchingGeo();
 lgRefresh();
-XHR.poll(8,']] .. lu .. [[',null,lgRefresh);
+setInterval(lgRefresh,8000);
 </script>
 ]]
 end

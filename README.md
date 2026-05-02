@@ -2,6 +2,10 @@
 
 一个类似 Lucky 的轻量级 OpenWrt 应用，提供四大核心功能：DDNS、SSL 证书、反向代理、登录防护。
 
+当前版本：**v1.3.2**
+
+> OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.2-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
+
 ## 功能特性
 
 ### 🌐 DDNS (动态域名解析)
@@ -28,7 +32,7 @@
 - 多站点管理
 - **直接 IP 访问拒绝**：只允许域名访问，扫描器直接断开
 
-### 🛡 登录防护 (Login Guard) **[v1.2.0 新增]**
+### 🛡 登录防护 (Login Guard)
 - 监控 **SSH（dropbear）** 和 **LuCI 网页** 登录失败
 - 在「失败窗口」内累积达到阈值（默认 3 次/10 分钟）→ 自动用 nftables 封禁源 IP
 - 可配置封禁时长（1 小时 / 6 小时 / **12 小时（默认）** / 24 小时 / 1 周 / 30 天）
@@ -36,6 +40,7 @@
 - **滑动时间窗口**：超过窗口未再失败则计数自动清零
 - 持久化存储 `/etc/minigate/login-guard/bans.txt`，重启/固件升级后已生效封禁自动恢复
 - LuCI 页面实时显示封禁列表、剩余时间、归属地（结合归属地查询 API）
+- 失败计数列表默认显示 5 条，支持切换 5 / 20 / 30 条，并复用访客追踪归属地查询
 - 支持网页**一键解封**、**手动封禁**、**清空全部**
 - 后台 watchdog 每 5 分钟自检 nft set，防 fw4 reload 后规则丢失
 
@@ -48,20 +53,46 @@
 
 ## 安装方法
 
-### 方法 1：源码安装（推荐，适用所有版本）
+### 方法 1：IPK 安装（推荐，OpenWrt / ImmortalWrt opkg 版本）
 
-适用于 **OpenWrt 25.xx（apk）** 和 **OpenWrt 24.xx 及以下（opkg）** 以及 **ImmortalWrt** 所有版本。
+从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载：
+
+`luci-app-minigate_1.3.2-1_all.ipk`
+
+**通过 LuCI 界面安装：**
+1. 打开 LuCI → **系统** → **软件包**
+2. 点击 **上传软件包**
+3. 选择 `luci-app-minigate_1.3.2-1_all.ipk`，点击安装
+
+**通过命令行安装：**
+
+```bash
+cd /tmp
+wget -O luci-app-minigate_1.3.2-1_all.ipk https://github.com/tpxcer/luci-app-minigate/releases/download/v1.3.2/luci-app-minigate_1.3.2-1_all.ipk
+opkg update
+opkg install /tmp/luci-app-minigate_1.3.2-1_all.ipk
+rm -rf /tmp/luci-* /tmp/luci-indexcache /tmp/luci-modulecache
+/etc/init.d/uhttpd restart
+/etc/init.d/minigate restart
+```
+
+> 如果 LuCI 上传时报 `Malformed package file`，通常是上传了错误文件。请确认文件名是 `luci-app-minigate_1.3.2-1_all.ipk`，不要上传 `Source code`、`.zip`、`src.tar.gz`。
+
+### 方法 2：源码安装（适用所有版本）
+
+适用于 **OpenWrt 25.xx（apk）**、**OpenWrt 24.xx 及以下（opkg）** 以及 **ImmortalWrt**。
 
 ```bash
 # 1. 下载源码包到电脑，然后上传到路由器
-scp luci-app-minigate-v1.1.0-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.2-src.tar.gz root@192.168.1.1:/tmp/
 
 # 2. SSH 到路由器
 ssh root@192.168.1.1
 
 # 3. 解压并安装
 cd /tmp
-tar xzf luci-app-minigate-v1.1.0-src.tar.gz
+tar xzf luci-app-minigate-v1.3.2-src.tar.gz
+cd luci-app-minigate-v1.3.2
 sh install.sh
 
 # 4. 启动服务
@@ -69,30 +100,6 @@ sh install.sh
 
 # 5. 访问 LuCI → 服务 → MiniGate
 ```
-
-### 方法 2：IPK 安装（OpenWrt 24.xx / ImmortalWrt opkg 版本）
-
-从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases) 下载 `.ipk` 文件。
-
-**通过 LuCI 界面安装：**
-1. 打开 LuCI → **系统** → **软件包**
-2. 点击 **上传软件包**
-3. 选择 `.ipk` 文件，点击安装
-
-**通过命令行安装：**
-```bash
-scp luci-app-minigate_1.1.0-1_all.ipk root@192.168.1.1:/tmp/
-ssh root@192.168.1.1
-opkg install /tmp/luci-app-minigate_1.1.0-1_all.ipk
-rm -rf /tmp/luci-*
-```
-
-> 如果安装时报 `postinst Permission denied`，执行：
-> ```bash
-> chmod +x /usr/lib/opkg/info/luci-app-minigate.postinst
-> sh /usr/lib/opkg/info/luci-app-minigate.postinst
-> rm -rf /tmp/luci-*
-> ```
 
 ### 方法 3：OpenWrt SDK 编译（适用所有版本，含 APK）
 
@@ -116,9 +123,10 @@ make package/luci-app-minigate/compile V=s
 ### 源码升级（通用）
 
 ```bash
-scp luci-app-minigate-v1.1.0-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.2-src.tar.gz root@192.168.1.1:/tmp/
 ssh root@192.168.1.1
-cd /tmp && tar xzf luci-app-minigate-v1.1.0-src.tar.gz
+cd /tmp && tar xzf luci-app-minigate-v1.3.2-src.tar.gz
+cd luci-app-minigate-v1.3.2
 sh install.sh
 /etc/init.d/minigate restart
 ```
@@ -126,8 +134,8 @@ sh install.sh
 ### IPK 升级
 
 ```bash
-opkg install --force-reinstall /tmp/luci-app-minigate_1.1.0-1_all.ipk
-rm -rf /tmp/luci-*
+opkg install --force-reinstall /tmp/luci-app-minigate_1.3.2-1_all.ipk
+rm -rf /tmp/luci-* /tmp/luci-indexcache /tmp/luci-modulecache
 /etc/init.d/minigate restart
 ```
 
@@ -266,6 +274,19 @@ luci-app-minigate/
 - `nftables` - 登录防护用（OpenWrt 22.03+ / ImmortalWrt 默认已装）
 
 ## 更新日志
+
+### v1.3.2
+- ✨ 登录防护「失败计数中」默认显示 5 条，支持 5 / 20 / 30 条下拉切换
+- ✨ 失败计数归属地查询复用总览「访问记录」的查询方式
+- 🐛 修复失败计数文件异常时 `lg_status` 刷新卡住的问题
+
+### v1.3.1
+- 🐛 修复手工安装脚本在 OpenWrt `/bin/sh` 下目录创建失败的问题
+- 🐛 重新生成标准 `.ipk` 安装包，避免 LuCI 提示 `Malformed package file`
+
+### v1.3.0
+- ⚡ 归属地查询增加 24 小时本地缓存
+- ⚡ 缩短外部归属地接口超时时间，减少页面等待
 
 ### v1.2.0
 - ✨ 新增 **登录防护 (Login Guard)** —— SSH/LuCI 失败登录达到阈值自动封禁源 IP

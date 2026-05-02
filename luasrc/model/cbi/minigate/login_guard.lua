@@ -131,6 +131,50 @@ function lgFlushAll(){
     });
 }
 
+function lgRenderWatching(watching,threshold){
+    var wEl=document.getElementById('lg-watching-list');
+    if(!wEl)return;
+    watching=watching||[];
+    threshold=Number(threshold)||3;
+    if(watching.length==0){
+        wEl.innerHTML='<div class="lg-empty">无</div>';
+        return;
+    }
+    var h2='<table class="lg-table">';
+    h2+='<thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>距首次失败</th></tr></thead><tbody>';
+    for(var j=0;j<watching.length;j++){
+        var w=watching[j]||{};
+        var ip=w.ip||'--';
+        var count=Number(w.count)||0;
+        var age=Number(w.age)||0;
+        var pct=Math.min(100,Math.round(count*100/threshold));
+        var color=pct>=66?'#ff7b72':(pct>=33?'#ffb35c':'#aaa');
+        h2+='<tr>';
+        h2+='<td><code class="lg-ip">'+ip+'</code></td>';
+        h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">查询中...</span></td>';
+        h2+='<td><span style="color:'+color+';font-weight:bold">'+count+' / '+threshold+'</span></td>';
+        h2+='<td>'+fmtDuration(age)+'</td>';
+        h2+='</tr>';
+    }
+    h2+='</tbody></table>';
+    wEl.innerHTML=h2;
+    var wq=0;
+    (function nextWatchingGeo(){
+        if(wq>=watching.length)return;
+        var idx=wq; wq++;
+        var row=watching[idx]||{};
+        if(!row.ip){
+            setTimeout(nextWatchingGeo,0);
+            return;
+        }
+        lgQueryGeo(row.ip,function(loc){
+            var ge=document.getElementById('lg-watch-geo-'+idx);
+            if(ge) ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
+            setTimeout(nextWatchingGeo,150);
+        });
+    })();
+}
+
 function lgRefresh(){
     XHR.get(']] .. lu .. [[',null,function(x,d){
         if(!d) return;
@@ -177,35 +221,10 @@ function lgRefresh(){
         }
 
         // 失败计数列表
-        var wEl=document.getElementById('lg-watching-list');
-        if(!d.watching||d.watching.length==0){
-            wEl.innerHTML='<div class="lg-empty">无</div>';
-        }else{
-            var h2='<table class="lg-table">';
-            h2+='<thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>距首次失败</th></tr></thead><tbody>';
-            for(var j=0;j<d.watching.length;j++){
-                var w=d.watching[j];
-                var pct=Math.min(100,Math.round(w.count*100/d.threshold));
-                var color=pct>=66?'#ff7b72':(pct>=33?'#ffb35c':'#aaa');
-                h2+='<tr>';
-                h2+='<td><code class="lg-ip">'+w.ip+'</code></td>';
-                h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">查询中...</span></td>';
-                h2+='<td><span style="color:'+color+';font-weight:bold">'+w.count+' / '+d.threshold+'</span></td>';
-                h2+='<td>'+fmtDuration(w.age)+'</td>';
-                h2+='</tr>';
-            }
-            h2+='</tbody></table>';
-            wEl.innerHTML=h2;
-            var wq=0;
-            (function nextWatchingGeo(){
-                if(wq>=d.watching.length)return;
-                var idx=wq; wq++;
-                lgQueryGeo(d.watching[idx].ip,function(loc){
-                    var ge=document.getElementById('lg-watch-geo-'+idx);
-                    if(ge) ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
-                    setTimeout(nextWatchingGeo,150);
-                });
-            })();
+        try{lgRenderWatching(d.watching,d.threshold);}
+        catch(e){
+            var wEl=document.getElementById('lg-watching-list');
+            if(wEl)wEl.innerHTML='<div class="lg-empty">渲染失败：'+e.message+'</div>';
         }
     });
 }

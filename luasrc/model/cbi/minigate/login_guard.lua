@@ -23,38 +23,67 @@ o = s:option(DummyValue, "_dash")
 o.rawhtml = true
 o.cfgvalue = function()
     return [[
-<div id="lg-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
-  <div style="background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #4caf50">
-    <div style="font-size:12px;color:#666">服务状态</div>
-    <div id="lg-running" style="font-size:16px;font-weight:bold;margin:5px 0">--</div>
+<style>
+.lg-wrap{display:flex;flex-direction:column;gap:16px}
+.lg-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.lg-card{position:relative;min-height:118px;border-radius:8px;padding:18px;background:#262626;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
+.lg-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,#777)}
+.lg-card-title{font-size:12px;color:#a8a8a8;margin-bottom:14px}
+.lg-card-value{font-size:22px;font-weight:700;line-height:1.25}
+.lg-panel{border-radius:8px;background:#262626;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.16);overflow:hidden}
+.lg-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.lg-panel-title{font-size:13px;font-weight:700;color:#ededed}
+.lg-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lg-input{height:30px;min-width:180px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:#1d1d1d;color:#eee;padding:0 10px;font-size:12px;box-sizing:border-box}
+.lg-btn{height:30px;border:0;border-radius:6px;padding:0 12px;font-size:12px;color:#fff;cursor:pointer}
+.lg-btn-primary{background:#5b55c8}
+.lg-btn-danger{background:#f08a24}
+.lg-table-wrap{overflow-x:auto}
+.lg-table{width:100%;border-collapse:collapse;min-width:720px}
+.lg-table th{padding:10px 12px;color:#9d9d9d;font-size:11px;font-weight:600;text-align:left;border-bottom:1px solid rgba(255,255,255,.08);background:#202020}
+.lg-table td{padding:11px 12px;color:#dddddd;font-size:12px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
+.lg-table tr:hover td{background:#2e2e2e}
+.lg-ip{display:inline-block;border-radius:6px;background:#383b45;color:#f2f4ff;padding:2px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+.lg-ip-danger{background:#4a3030;color:#ffb8b8}
+.lg-empty{padding:18px 16px;color:#aaa;font-size:12px}
+.lg-unban{height:26px;border:1px solid rgba(255,255,255,.16);border-radius:6px;background:#313131;color:#eee;padding:0 10px;font-size:11px;cursor:pointer}
+@media(max-width:900px){.lg-summary{grid-template-columns:1fr}.lg-card{min-height:auto}.lg-input{width:100%;min-width:0}.lg-tools{width:100%}}
+</style>
+
+<div class="lg-wrap">
+<div id="lg-summary" class="lg-summary">
+  <div class="lg-card" style="--accent:#4caf50">
+    <div class="lg-card-title">服务状态</div>
+    <div id="lg-running" class="lg-card-value">--</div>
   </div>
-  <div style="background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #f44336">
-    <div style="font-size:12px;color:#666">当前已封禁</div>
-    <div id="lg-banned-count" style="font-size:24px;font-weight:bold;margin:5px 0;color:#f44336">--</div>
+  <div class="lg-card" style="--accent:#f44336">
+    <div class="lg-card-title">当前已封禁</div>
+    <div id="lg-banned-count" class="lg-card-value" style="color:#ff7b72">--</div>
   </div>
-  <div style="background:#f8f9fa;border-radius:8px;padding:15px;border-left:4px solid #ff9800">
-    <div style="font-size:12px;color:#666">失败计数中</div>
-    <div id="lg-watching-count" style="font-size:24px;font-weight:bold;margin:5px 0;color:#ff9800">--</div>
+  <div class="lg-card" style="--accent:#ff9800">
+    <div class="lg-card-title">失败计数中</div>
+    <div id="lg-watching-count" class="lg-card-value" style="color:#ffb35c">--</div>
   </div>
 </div>
 
-<!-- 已封禁 IP 列表 -->
-<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:15px;margin-bottom:12px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <span style="font-weight:bold">🛡 已封禁 IP 列表</span>
-    <div>
-      <input id="lg-ban-input" type="text" placeholder="输入 IP 手动封禁" style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:12px;width:140px" />
-      <button class="cbi-button cbi-button-action" style="padding:4px 12px;font-size:12px" onclick="lgManualBan()">封禁</button>
-      <button class="cbi-button cbi-button-negative" style="padding:4px 12px;font-size:12px;margin-left:8px" onclick="lgFlushAll()">清空全部</button>
+<div class="lg-panel">
+  <div class="lg-panel-head">
+    <div class="lg-panel-title">已封禁 IP 列表</div>
+    <div class="lg-tools">
+      <input id="lg-ban-input" class="lg-input" type="text" placeholder="输入 IP 手动封禁" />
+      <button class="lg-btn lg-btn-primary" onclick="lgManualBan()">封禁</button>
+      <button class="lg-btn lg-btn-danger" onclick="lgFlushAll()">清空全部</button>
     </div>
   </div>
-  <div id="lg-banned-list" style="font-size:12px">加载中...</div>
+  <div id="lg-banned-list" class="lg-table-wrap"><div class="lg-empty">加载中...</div></div>
 </div>
 
-<!-- 失败计数中 -->
-<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:15px">
-  <div style="font-weight:bold;margin-bottom:10px">⚠ 失败计数中（未达阈值）</div>
-  <div id="lg-watching-list" style="font-size:12px">加载中...</div>
+<div class="lg-panel">
+  <div class="lg-panel-head">
+    <div class="lg-panel-title">失败计数中（未达阈值）</div>
+  </div>
+  <div id="lg-watching-list" class="lg-table-wrap"><div class="lg-empty">加载中...</div></div>
+</div>
 </div>
 
 <script type="text/javascript">
@@ -119,24 +148,20 @@ function lgRefresh(){
         // 已封禁列表
         var listEl=document.getElementById('lg-banned-list');
         if(!d.banned||d.banned.length==0){
-            listEl.innerHTML='<span style="color:#999">暂无封禁</span>';
+            listEl.innerHTML='<div class="lg-empty">暂无封禁</div>';
         }else{
-            var h='<table style="width:100%;border-collapse:collapse">';
-            h+='<tr style="border-bottom:1px solid #e0e0e0;color:#666;font-size:11px">';
-            h+='<td style="padding:4px 8px">IP 地址</td>';
-            h+='<td style="padding:4px 8px">归属地</td>';
-            h+='<td style="padding:4px 8px">剩余时间</td>';
-            h+='<td style="padding:4px 8px">操作</td></tr>';
+            var h='<table class="lg-table">';
+            h+='<thead><tr><th>IP 地址</th><th>归属地</th><th>剩余时间</th><th>操作</th></tr></thead><tbody>';
             for(var i=0;i<d.banned.length;i++){
                 var b=d.banned[i];
-                h+='<tr style="border-bottom:1px solid #f0f0f0">';
-                h+='<td style="padding:5px 8px"><code style="background:#ffe8e8;color:#c62828;padding:1px 6px;border-radius:3px">'+b.ip+'</code></td>';
-                h+='<td style="padding:5px 8px" id="lg-geo-'+i+'"><span style="color:#bbb">查询中...</span></td>';
-                h+='<td style="padding:5px 8px">'+fmtDuration(b.remaining)+'</td>';
-                h+='<td style="padding:5px 8px"><button class="cbi-button cbi-button-action" style="padding:2px 10px;font-size:11px" onclick="lgUnban(\''+b.ip+'\',this)">解封</button></td>';
+                h+='<tr>';
+                h+='<td><code class="lg-ip lg-ip-danger">'+b.ip+'</code></td>';
+                h+='<td id="lg-geo-'+i+'"><span style="color:#999">查询中...</span></td>';
+                h+='<td>'+fmtDuration(b.remaining)+'</td>';
+                h+='<td><button class="lg-unban" onclick="lgUnban(\''+b.ip+'\',this)">解封</button></td>';
                 h+='</tr>';
             }
-            h+='</table>';
+            h+='</tbody></table>';
             listEl.innerHTML=h;
             // 异步查归属地
             var qi=0;
@@ -154,26 +179,22 @@ function lgRefresh(){
         // 失败计数列表
         var wEl=document.getElementById('lg-watching-list');
         if(!d.watching||d.watching.length==0){
-            wEl.innerHTML='<span style="color:#999">无</span>';
+            wEl.innerHTML='<div class="lg-empty">无</div>';
         }else{
-            var h2='<table style="width:100%;border-collapse:collapse">';
-            h2+='<tr style="border-bottom:1px solid #e0e0e0;color:#666;font-size:11px">';
-            h2+='<td style="padding:4px 8px">IP 地址</td>';
-            h2+='<td style="padding:4px 8px">归属地</td>';
-            h2+='<td style="padding:4px 8px">失败次数</td>';
-            h2+='<td style="padding:4px 8px">距首次失败</td></tr>';
+            var h2='<table class="lg-table">';
+            h2+='<thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>距首次失败</th></tr></thead><tbody>';
             for(var j=0;j<d.watching.length;j++){
                 var w=d.watching[j];
                 var pct=Math.min(100,Math.round(w.count*100/d.threshold));
-                var color=pct>=66?'#f44336':(pct>=33?'#ff9800':'#999');
-                h2+='<tr style="border-bottom:1px solid #f0f0f0">';
-                h2+='<td style="padding:5px 8px"><code style="background:#fff3e0;padding:1px 6px;border-radius:3px">'+w.ip+'</code></td>';
-                h2+='<td style="padding:5px 8px" id="lg-watch-geo-'+j+'"><span style="color:#bbb">查询中...</span></td>';
-                h2+='<td style="padding:5px 8px"><span style="color:'+color+';font-weight:bold">'+w.count+' / '+d.threshold+'</span></td>';
-                h2+='<td style="padding:5px 8px">'+fmtDuration(w.age)+'</td>';
+                var color=pct>=66?'#ff7b72':(pct>=33?'#ffb35c':'#aaa');
+                h2+='<tr>';
+                h2+='<td><code class="lg-ip">'+w.ip+'</code></td>';
+                h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">查询中...</span></td>';
+                h2+='<td><span style="color:'+color+';font-weight:bold">'+w.count+' / '+d.threshold+'</span></td>';
+                h2+='<td>'+fmtDuration(w.age)+'</td>';
                 h2+='</tr>';
             }
-            h2+='</table>';
+            h2+='</tbody></table>';
             wEl.innerHTML=h2;
             var wq=0;
             (function nextWatchingGeo(){

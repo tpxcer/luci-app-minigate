@@ -2,9 +2,9 @@
 
 一个类似 Lucky 的轻量级 OpenWrt 应用，提供四大核心功能：DDNS、SSL 证书、反向代理、登录防护。
 
-当前版本：**v1.3.2**
+当前版本：**v1.3.3**
 
-> OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.2-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
+> OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.3-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
 
 ## 功能特性
 
@@ -57,26 +57,26 @@
 
 从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载：
 
-`luci-app-minigate_1.3.2-1_all.ipk`
+`luci-app-minigate_1.3.3-1_all.ipk`
 
 **通过 LuCI 界面安装：**
 1. 打开 LuCI → **系统** → **软件包**
 2. 点击 **上传软件包**
-3. 选择 `luci-app-minigate_1.3.2-1_all.ipk`，点击安装
+3. 选择 `luci-app-minigate_1.3.3-1_all.ipk`，点击安装
 
 **通过命令行安装：**
 
 ```bash
 cd /tmp
-wget -O luci-app-minigate_1.3.2-1_all.ipk https://github.com/tpxcer/luci-app-minigate/releases/download/v1.3.2/luci-app-minigate_1.3.2-1_all.ipk
+wget -O luci-app-minigate_1.3.3-1_all.ipk https://github.com/tpxcer/luci-app-minigate/releases/download/v1.3.3/luci-app-minigate_1.3.3-1_all.ipk
 opkg update
-opkg install /tmp/luci-app-minigate_1.3.2-1_all.ipk
+opkg install /tmp/luci-app-minigate_1.3.3-1_all.ipk
 rm -rf /tmp/luci-* /tmp/luci-indexcache /tmp/luci-modulecache
 /etc/init.d/uhttpd restart
 /etc/init.d/minigate restart
 ```
 
-> 如果 LuCI 上传时报 `Malformed package file`，通常是上传了错误文件。请确认文件名是 `luci-app-minigate_1.3.2-1_all.ipk`，不要上传 `Source code`、`.zip`、`src.tar.gz`。
+> 如果 LuCI 上传时报 `Malformed package file`，通常是上传了错误文件。请确认文件名是 `luci-app-minigate_1.3.3-1_all.ipk`，不要上传 `Source code`、`.zip`、`src.tar.gz`。
 
 ### 方法 2：源码安装（适用所有版本）
 
@@ -84,15 +84,15 @@ rm -rf /tmp/luci-* /tmp/luci-indexcache /tmp/luci-modulecache
 
 ```bash
 # 1. 下载源码包到电脑，然后上传到路由器
-scp luci-app-minigate-v1.3.2-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.3-src.tar.gz root@192.168.1.1:/tmp/
 
 # 2. SSH 到路由器
 ssh root@192.168.1.1
 
 # 3. 解压并安装
 cd /tmp
-tar xzf luci-app-minigate-v1.3.2-src.tar.gz
-cd luci-app-minigate-v1.3.2
+tar xzf luci-app-minigate-v1.3.3-src.tar.gz
+cd luci-app-minigate-v1.3.3
 sh install.sh
 
 # 4. 启动服务
@@ -123,10 +123,10 @@ make package/luci-app-minigate/compile V=s
 ### 源码升级（通用）
 
 ```bash
-scp luci-app-minigate-v1.3.2-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.3-src.tar.gz root@192.168.1.1:/tmp/
 ssh root@192.168.1.1
-cd /tmp && tar xzf luci-app-minigate-v1.3.2-src.tar.gz
-cd luci-app-minigate-v1.3.2
+cd /tmp && tar xzf luci-app-minigate-v1.3.3-src.tar.gz
+cd luci-app-minigate-v1.3.3
 sh install.sh
 /etc/init.d/minigate restart
 ```
@@ -134,7 +134,7 @@ sh install.sh
 ### IPK 升级
 
 ```bash
-opkg install --force-reinstall /tmp/luci-app-minigate_1.3.2-1_all.ipk
+opkg install --force-reinstall /tmp/luci-app-minigate_1.3.3-1_all.ipk
 rm -rf /tmp/luci-* /tmp/luci-indexcache /tmp/luci-modulecache
 /etc/init.d/minigate restart
 ```
@@ -274,6 +274,9 @@ luci-app-minigate/
 - `nftables` - 登录防护用（OpenWrt 22.03+ / ImmortalWrt 默认已装）
 
 ## 更新日志
+
+### v1.3.3
+- 🐛 重新生成 OpenWrt opkg 更兼容的 `.ipk` ar 归档格式，修复部分系统仍提示 `Malformed package file`
 
 ### v1.3.2
 - ✨ 登录防护「失败计数中」默认显示 5 条，支持 5 / 20 / 30 条下拉切换

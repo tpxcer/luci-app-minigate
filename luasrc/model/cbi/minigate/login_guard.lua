@@ -22,6 +22,53 @@ local gu = luci.dispatcher.build_url("admin/services/minigate/geo_lookup")
 o = s:option(DummyValue, "_dash")
 o.rawhtml = true
 o.cfgvalue = function()
+    local function esc(v)
+        v = tostring(v or "")
+        v = v:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
+        v = v:gsub('"', "&quot;"):gsub("'", "&#39;")
+        return v
+    end
+
+    local function fmt_duration(s)
+        s = tonumber(s) or 0
+        if s >= 3600 then
+            return string.format("%dh%dm", math.floor(s / 3600), math.floor((s % 3600) / 60))
+        elseif s >= 60 then
+            return string.format("%dm%ds", math.floor(s / 60), s % 60)
+        end
+        return tostring(s) .. "s"
+    end
+
+    local threshold = tonumber(m.uci:get("minigate", "login_guard", "threshold")) or 3
+    local now = os.time()
+    local watching_rows = {}
+    local counter_dir = "/var/run/minigate/login-guard/counters"
+    local list_out = sys.exec("ls " .. counter_dir .. " 2>/dev/null") or ""
+    for ip in list_out:gmatch("[^\n]+") do
+        local fh = io.open(counter_dir .. "/" .. ip, "r")
+        if fh then
+            local line = fh:read("*l") or ""
+            fh:close()
+            local first, count = line:match("^(%d+)%s+(%d+)")
+            if first and count then
+                local age = now - tonumber(first)
+                watching_rows[#watching_rows + 1] =
+                    '<tr><td><code class="lg-ip">' .. esc(ip) .. '</code></td>' ..
+                    '<td><span style="color:#999">等待刷新...</span></td>' ..
+                    '<td><span style="font-weight:bold">' .. esc(count) .. ' / ' .. esc(threshold) .. '</span></td>' ..
+                    '<td>' .. esc(fmt_duration(age)) .. '</td></tr>'
+            end
+        end
+    end
+
+    local initial_watching = '<div class="lg-empty">无</div>'
+    if #watching_rows > 0 then
+        initial_watching =
+            '<table class="lg-table"><thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>距首次失败</th></tr></thead><tbody>' ..
+            table.concat(watching_rows, "") ..
+            '</tbody></table>'
+    end
+
     return [[
 <style>
 .lg-wrap{display:flex;flex-direction:column;gap:16px}
@@ -82,7 +129,7 @@ o.cfgvalue = function()
   <div class="lg-panel-head">
     <div class="lg-panel-title">失败计数中（未达阈值）</div>
   </div>
-  <div id="lg-watching-list" class="lg-table-wrap"><div class="lg-empty">加载中...</div></div>
+  <div id="lg-watching-list" class="lg-table-wrap">]] .. initial_watching .. [[</div>
 </div>
 </div>
 
@@ -159,9 +206,9 @@ function lgRenderWatching(watching,threshold){
     h2+='</tbody></table>';
     wEl.innerHTML=h2;
     var wq=0;
-    (function nextWatchingGeo(){
+    function nextWatchingGeo(){
         if(wq>=watching.length)return;
-        var idx=wq; wq++;
+        var idx=wq++;
         var row=watching[idx]||{};
         if(!row.ip){
             setTimeout(nextWatchingGeo,0);
@@ -170,9 +217,10 @@ function lgRenderWatching(watching,threshold){
         lgQueryGeo(row.ip,function(loc){
             var ge=document.getElementById('lg-watch-geo-'+idx);
             if(ge) ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
-            setTimeout(nextWatchingGeo,150);
+            nextWatchingGeo();
         });
-    })();
+    }
+    for(var n=0;n<3;n++)nextWatchingGeo();
 }
 
 function lgRefresh(){

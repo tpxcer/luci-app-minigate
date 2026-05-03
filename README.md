@@ -76,7 +76,23 @@ rm -rf /tmp/luci-* /tmp/luci-indexcache /tmp/luci-modulecache
 /etc/init.d/minigate restart
 ```
 
-> 如果 LuCI 上传时报 `Malformed package file`，通常是上传了错误文件。请确认文件名是 `luci-app-minigate_1.3.4-1_all.ipk`，不要上传 `Source code`、`.zip`、`src.tar.gz`。
+> 如果 LuCI 上传时报 `Malformed package file`，请确认下载的是 Release 里的 `.ipk` 资产，并确认该 `.ipk` 是 OpenWrt 原生 tar.gz 外层格式。ImmortalWrt 24.10.5 的新版 opkg 对格式更严格，Debian 风格 ar 外层 `.ipk` 会被判定为 malformed。
+
+### 维护者打包
+
+Release 用的 `.ipk` 请用仓库脚本生成，避免生成 Debian 风格 ar 外层包：
+
+```bash
+./scripts/build-ipk.sh
+```
+
+脚本会输出：
+
+```text
+dist/luci-app-minigate_1.3.4-1_all.ipk
+```
+
+该文件外层是 OpenWrt/ImmortalWrt 24.10 兼容的 `tar.gz`，内部成员顺序为 `debian-binary`、`control.tar.gz`、`data.tar.gz`。
 
 ### 方法 2：源码安装（适用所有版本）
 

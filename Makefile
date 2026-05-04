@@ -50,7 +50,7 @@ define Package/$(PKG_NAME)/install
 
 	# i18n / translations
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-	po2lmo ./po/zh-cn/minigate.po $(1)/usr/lib/lua/luci/i18n/minigate.zh-cn.lmo
+	[ ! -f ./po/zh-cn/minigate.po ] || po2lmo ./po/zh-cn/minigate.po $(1)/usr/lib/lua/luci/i18n/minigate.zh-cn.lmo
 endef
 
 define Package/$(PKG_NAME)/postinst

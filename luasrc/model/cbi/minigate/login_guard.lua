@@ -6,7 +6,7 @@ m = Map("minigate", "登录防护 (Login Guard)",
     "适用于 SSH 端口被映射到公网、防爆破。LAN 私有 IP 自动豁免。")
 
 m.on_after_commit = function(self)
-    sys.call("/etc/init.d/minigate restart >/dev/null 2>&1 &")
+    sys.call("/etc/init.d/minigate reload >/dev/null 2>&1 &")
 end
 
 -- ============== 实时状态 ==============

@@ -6,16 +6,28 @@ PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=MiniGate
 
-LUCI_TITLE:=LuCI - MiniGate (DDNS + ACME + Reverse Proxy + Login Guard)
-LUCI_DESCRIPTION:=Lightweight gateway management for OpenWrt: Cloudflare DDNS, Let's Encrypt SSL certificates, Nginx reverse proxy, and SSH/LuCI brute-force ban (Login Guard) with LuCI web interface.
-LUCI_DEPENDS:=+luci-base +nginx-ssl +openssl-util +wget +curl +jsonfilter +coreutils-stat +nftables
-LUCI_PKGARCH:=all
+include $(INCLUDE_DIR)/package.mk
+
+define Package/$(PKG_NAME)
+	SECTION:=luci
+	CATEGORY:=LuCI
+	SUBMENU:=3. Applications
+	TITLE:=LuCI - MiniGate (DDNS + ACME + Reverse Proxy + Login Guard)
+	DEPENDS:=+luci-base +nginx-ssl +openssl-util +wget +curl +jsonfilter +coreutils-stat +nftables
+	PKGARCH:=all
+endef
+
+define Package/$(PKG_NAME)/description
+Lightweight gateway management for OpenWrt: Cloudflare DDNS, Let's Encrypt SSL certificates,
+Nginx reverse proxy, and SSH/LuCI brute-force ban (Login Guard) with LuCI web interface.
+endef
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/minigate
 endef
 
-include $(TOPDIR)/feeds/luci/luci.mk
+define Build/Compile
+endef
 
 define Package/$(PKG_NAME)/install
 	# LuCI files
@@ -50,7 +62,7 @@ define Package/$(PKG_NAME)/install
 
 	# i18n / translations
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-	[ ! -f ./po/zh-cn/minigate.po ] || po2lmo ./po/zh-cn/minigate.po $(1)/usr/lib/lua/luci/i18n/minigate.zh-cn.lmo
+	[ ! -f ./po/zh-cn/minigate.po ] || $(STAGING_DIR_HOSTPKG)/bin/po2lmo ./po/zh-cn/minigate.po $(1)/usr/lib/lua/luci/i18n/minigate.zh-cn.lmo
 endef
 
 define Package/$(PKG_NAME)/postinst

@@ -319,6 +319,7 @@ luci-app-minigate/
 - 修复通过 MiniGate 反向代理访问 LuCI 时，登录防护页面保存设置导致当前反代连接被断开的问题
 - 登录防护页面保存设置时改为轻量重载 MiniGate，不再完整重启反代 nginx
 - 登录防护「失败计数中」新增最近访问时间，并按最新访问时间排在最前
+- 修复 OpenWrt/ImmortalWrt 编译菜单中 `luci-app-minigate` 出现两条重复选项的问题
 - Release 自动构建流程改为中文更新说明，并自动刷新安装包附件
 
 ### v1.3.4

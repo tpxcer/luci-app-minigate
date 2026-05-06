@@ -55,10 +55,15 @@ jobs:
           cat > release-notes.md <<EOF
           MiniGate v${VERSION}-${RELEASE}
 
-          Changes:
-          - Login Guard settings now reload MiniGate instead of fully restarting it, avoiding reverse-proxy session drops while saving settings.
+          更新内容：
+          - 登录防护页面保存设置时，改为执行 MiniGate 轻量重载，而不是完整重启。
+          - 修复通过 MiniGate 反向代理访问 LuCI 时，保存登录防护设置后当前网页连接被反代 nginx 断开，导致浏览器显示“无法访问此网站”的问题。
+
+          说明：
+          - 旧版 Release 附件不会自动变化，请下载当前版本的 luci-app-minigate_${VERSION}-${RELEASE}_all.ipk。
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "luci-app-minigate v${VERSION}" --notes-file release-notes.md --latest
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "luci-app-minigate v${VERSION}" --notes-file release-notes.md --latest

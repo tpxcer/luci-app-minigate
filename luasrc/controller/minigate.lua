@@ -274,6 +274,7 @@ end
 
 function action_lg_status()
     local sys = require "luci.sys"
+    local fs = require "nixio.fs"
     local uci = require "luci.model.uci".cursor()
 
     local watch_limit = tonumber(luci.http.formvalue("watch_limit") or "5") or 5
@@ -317,25 +318,32 @@ function action_lg_status()
     local now = os.time()
     local list_out = sys.exec("ls " .. counter_dir .. " 2>/dev/null") or ""
     for ip in list_out:gmatch("[^\n]+") do
-        local fh = io.open(counter_dir .. "/" .. ip, "r")
+        local path = counter_dir .. "/" .. ip
+        local fh = io.open(path, "r")
         if fh then
             local line = fh:read("*l") or ""
             fh:close()
             local first, count = line:match("(%d+)%s+(%d+)")
             if first and count then
+                local first_time = tonumber(first)
+                local stat = fs.stat(path)
+                local last_time = (stat and stat.mtime) or first_time
+                local age = now - first_time
+                if age <= window_s then
                 watching[#watching+1] = {
                     ip = ip,
                     count = tonumber(count),
-                    age = now - tonumber(first)
+                    age = age,
+                    first_time = first_time,
+                    last_time = last_time,
+                    last_seen = os.date("%Y-%m-%d %H:%M:%S", last_time)
                 }
+                end
             end
         end
     end
     table.sort(watching, function(a,b)
-        if a.count == b.count then
-            return a.age < b.age
-        end
-        return a.count > b.count
+        return (a.last_time or 0) > (b.last_time or 0)
     end)
     local watching_total = #watching
     local watching_limited = {}

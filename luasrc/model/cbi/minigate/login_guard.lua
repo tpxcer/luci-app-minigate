@@ -1,5 +1,6 @@
 local m, s, o
 local sys = require "luci.sys"
+local fs = require "nixio.fs"
 
 m = Map("minigate", "登录防护 (Login Guard)",
     "监控 SSH（dropbear）和 LuCI 网页登录失败，达到阈值自动封禁源 IP。" ..
@@ -46,25 +47,27 @@ o.cfgvalue = function()
     local counter_dir = "/var/run/minigate/login-guard/counters"
     local list_out = sys.exec("ls " .. counter_dir .. " 2>/dev/null") or ""
     for ip in list_out:gmatch("[^\n]+") do
-        local fh = io.open(counter_dir .. "/" .. ip, "r")
+        local path = counter_dir .. "/" .. ip
+        local fh = io.open(path, "r")
         if fh then
             local line = fh:read("*l") or ""
             fh:close()
             local first, count = line:match("^(%d+)%s+(%d+)")
             if first and count then
+                local stat = fs.stat(path)
+                local last_time = (stat and stat.mtime) or tonumber(first)
                 watching_items[#watching_items + 1] = {
                     ip = ip,
                     count = tonumber(count) or 0,
-                    age = now - tonumber(first)
+                    age = now - tonumber(first),
+                    last_time = last_time,
+                    last_seen = os.date("%Y-%m-%d %H:%M:%S", last_time)
                 }
             end
         end
     end
     table.sort(watching_items, function(a,b)
-        if a.count == b.count then
-            return a.age < b.age
-        end
-        return a.count > b.count
+        return (a.last_time or 0) > (b.last_time or 0)
     end)
     for i = 1, math.min(#watching_items, 30) do
         local item = watching_items[i]
@@ -73,13 +76,14 @@ o.cfgvalue = function()
             '<tr class="lg-watch-row" data-ip="' .. esc(item.ip) .. '" data-index="' .. tostring(i) .. '"' .. style .. '><td><code class="lg-ip">' .. esc(item.ip) .. '</code></td>' ..
             '<td id="lg-watch-geo-initial-' .. tostring(i) .. '"><span style="color:#999">查询中...</span></td>' ..
             '<td><span style="font-weight:bold">' .. esc(item.count) .. ' / ' .. esc(threshold) .. '</span></td>' ..
+            '<td>' .. esc(item.last_seen) .. '</td>' ..
             '<td>' .. esc(fmt_duration(item.age)) .. '</td></tr>'
     end
 
     local initial_watching = '<div class="lg-empty">无</div>'
     if #watching_rows > 0 then
         initial_watching =
-            '<table class="lg-table"><thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>距首次失败</th></tr></thead><tbody>' ..
+            '<table class="lg-table"><thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>最近访问时间</th><th>距首次失败</th></tr></thead><tbody>' ..
             table.concat(watching_rows, "") ..
             '</tbody></table>'
     end
@@ -175,6 +179,7 @@ o.cfgvalue = function()
   </div>
   <div id="lg-watching-list" class="lg-table-wrap">]] .. initial_watching .. [[</div>
 </div>
+
 </div>
 
 <script type="text/javascript">
@@ -259,18 +264,20 @@ function lgRenderWatching(watching,threshold){
         return;
     }
     var h2='<table class="lg-table">';
-    h2+='<thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>距首次失败</th></tr></thead><tbody>';
+    h2+='<thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>最近访问时间</th><th>距首次失败</th></tr></thead><tbody>';
     for(var j=0;j<watching.length;j++){
         var w=watching[j]||{};
         var ip=w.ip||'--';
         var count=Number(w.count)||0;
         var age=Number(w.age)||0;
+        var lastSeen=w.last_seen||'--';
         var pct=Math.min(100,Math.round(count*100/threshold));
         var color=pct>=66?'#ff7b72':(pct>=33?'#ffb35c':'#aaa');
         h2+='<tr>';
         h2+='<td><code class="lg-ip">'+ip+'</code></td>';
         h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">查询中...</span></td>';
         h2+='<td><span style="color:'+color+';font-weight:bold">'+count+' / '+threshold+'</span></td>';
+        h2+='<td>'+lastSeen+'</td>';
         h2+='<td>'+fmtDuration(age)+'</td>';
         h2+='</tr>';
     }
@@ -349,6 +356,7 @@ function lgApplyStatus(d){
             var wEl=document.getElementById('lg-watching-list');
             if(wEl)wEl.innerHTML='<div class="lg-empty">渲染失败：'+e.message+'</div>';
         }
+
 }
 
 function lgRefresh(){

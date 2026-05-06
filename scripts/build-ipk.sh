@@ -5,14 +5,13 @@ ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 OUT_DIR="${1:-$ROOT_DIR/dist}"
 
 PKG_NAME="luci-app-minigate"
-PKG_VERSION="1.3.4"
+PKG_VERSION="1.3.5"
 PKG_RELEASE="1"
 PKG_ARCH="all"
 PKG_FILE="${PKG_NAME}_${PKG_VERSION}-${PKG_RELEASE}_${PKG_ARCH}.ipk"
 DEPS="libc, luci-base, nginx-ssl, openssl-util, wget, curl, jsonfilter, coreutils-stat, nftables"
 
 WORK_DIR="$(mktemp -d)"
-trap 'rm -rf "$WORK_DIR"' EXIT INT TERM
 
 CONTROL_DIR="$WORK_DIR/control"
 DATA_DIR="$WORK_DIR/data"

@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           chmod +x scripts/build-ipk.sh
-          scripts/build-ipk.sh dist
+          scripts/build-ipk.sh "$PWD/dist"
 
       - name: Build source archive
         shell: bash

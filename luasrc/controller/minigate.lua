@@ -211,14 +211,11 @@ function action_geo_lookup()
     local cache_dir = "/tmp/minigate-geo-cache"
     local cache_file = cache_dir .. "/" .. ip:gsub("[^%w%.%-_:]", "_")
     fs.mkdirr(cache_dir)
-    local st = fs.stat(cache_file)
-    if st and st.mtime and (os.time() - st.mtime) < 86400 then
-        local cached = fs.readfile(cache_file)
-        if cached and cached ~= "" then
-            luci.http.prepare_content("application/json")
-            luci.http.write_json({ ip = ip, geo = cached:gsub("%s+$", "") })
-            return
-        end
+    local cached = fs.readfile(cache_file)
+    if cached and cached ~= "" then
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({ ip = ip, geo = cached:gsub("%s+$", "") })
+        return
     end
 
     local geo = nil
@@ -281,6 +278,10 @@ function action_lg_status()
     if watch_limit ~= 20 and watch_limit ~= 30 then
         watch_limit = 5
     end
+    local ban_limit = tonumber(luci.http.formvalue("ban_limit") or "5") or 5
+    if ban_limit ~= 20 and ban_limit ~= 30 then
+        ban_limit = 5
+    end
 
     local enabled = uci:get("minigate","login_guard","enabled") or "0"
     local threshold = tonumber(uci:get("minigate","login_guard","threshold")) or 3
@@ -311,6 +312,11 @@ function action_lg_status()
     end
     -- 按剩余时间倒序
     table.sort(banned, function(a,b) return a.remaining > b.remaining end)
+    local banned_total = #banned
+    local banned_limited = {}
+    for i = 1, math.min(banned_total, ban_limit) do
+        banned_limited[#banned_limited + 1] = banned[i]
+    end
 
     -- 失败计数中（读 /var/run/minigate/login-guard/counters/）
     local watching = {}
@@ -358,7 +364,9 @@ function action_lg_status()
         threshold = threshold,
         bantime = bantime,
         window = window_s,
-        banned = banned,
+        banned = banned_limited,
+        banned_total = banned_total,
+        ban_limit = ban_limit,
         watching = watching_limited,
         watching_total = watching_total,
         watch_limit = watch_limit

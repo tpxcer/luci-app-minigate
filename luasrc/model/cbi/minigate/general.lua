@@ -108,6 +108,7 @@ o.cfgvalue = function()
 
 <script type="text/javascript">
 var _geoCache={};
+var _geoPending={};
 var _visitorLimit=localStorage.getItem('mgVisitorLimit')||'5';
 if(_visitorLimit!='5'&&_visitorLimit!='20'&&_visitorLimit!='50')_visitorLimit='5';
 
@@ -119,9 +120,17 @@ function fmtT(iso){
 
 function queryGeo(ip,cb){
     if(_geoCache[ip]){cb(_geoCache[ip]);return;}
+    if(_geoPending[ip]){
+        _geoPending[ip].push(cb);
+        return;
+    }
+    _geoPending[ip]=[cb];
     XHR.get(']] .. gu .. [[',{ip:ip},function(x,d){
-        if(d&&d.geo){_geoCache[ip]=d.geo;cb(d.geo);}
-        else{_geoCache[ip]='未知';cb('未知');}
+        var loc=(d&&d.geo)?d.geo:'未知';
+        var list=_geoPending[ip]||[];
+        delete _geoPending[ip];
+        _geoCache[ip]=loc;
+        for(var i=0;i<list.length;i++)list[i](loc);
     });
 }
 

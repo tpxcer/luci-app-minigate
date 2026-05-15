@@ -156,6 +156,13 @@ o.cfgvalue = function()
   <div class="lg-panel-head">
     <div class="lg-panel-title">已封禁 IP 列表</div>
     <div class="lg-tools">
+      <label class="lg-limit-label">显示
+        <select id="lg-ban-limit" class="lg-select">
+          <option value="5">5 条</option>
+          <option value="20">20 条</option>
+          <option value="30">30 条</option>
+        </select>
+      </label>
       <input id="lg-ban-input" class="lg-input" type="text" placeholder="输入 IP 手动封禁" />
       <button class="lg-btn lg-btn-primary" onclick="lgManualBan()">封禁</button>
       <button class="lg-btn lg-btn-danger" onclick="lgFlushAll()">清空全部</button>
@@ -184,13 +191,23 @@ o.cfgvalue = function()
 
 <script type="text/javascript">
 var _lgGeoCache={};
+var _lgGeoPending={};
+var _lgBanLimit=5;
 var _lgWatchLimit=5;
 
 function lgQueryGeo(ip,cb){
     if(_lgGeoCache[ip]){cb(_lgGeoCache[ip]);return;}
+    if(_lgGeoPending[ip]){
+        _lgGeoPending[ip].push(cb);
+        return;
+    }
+    _lgGeoPending[ip]=[cb];
     XHR.get(']] .. gu .. [[',{ip:ip},function(x,d){
-        if(d&&d.geo){_lgGeoCache[ip]=d.geo;cb(d.geo);}
-        else{_lgGeoCache[ip]='未知';cb('未知');}
+        var loc=(d&&d.geo)?d.geo:'未知';
+        var list=_lgGeoPending[ip]||[];
+        delete _lgGeoPending[ip];
+        _lgGeoCache[ip]=loc;
+        for(var i=0;i<list.length;i++)list[i](loc);
     });
 }
 
@@ -316,7 +333,7 @@ function lgApplyStatus(d){
         }else{
             rEl.innerHTML='<span style="color:#999">未启用</span>';
         }
-        document.getElementById('lg-banned-count').textContent=(d.banned||[]).length;
+        document.getElementById('lg-banned-count').textContent=(d.banned_total!=null)?d.banned_total:(d.banned||[]).length;
         document.getElementById('lg-watching-count').textContent=(d.watching_total!=null)?d.watching_total:(d.watching||[]).length;
 
         // 已封禁列表
@@ -360,9 +377,19 @@ function lgApplyStatus(d){
 }
 
 function lgRefresh(){
-    XHR.get(']] .. lu .. [[',{watch_limit:_lgWatchLimit},function(x,d){
+    XHR.get(']] .. lu .. [[',{ban_limit:_lgBanLimit,watch_limit:_lgWatchLimit},function(x,d){
         lgApplyStatus(d);
     });
+}
+
+var lgBanLimitSel=document.getElementById('lg-ban-limit');
+if(lgBanLimitSel){
+    lgBanLimitSel.value=String(_lgBanLimit);
+    lgBanLimitSel.onchange=function(){
+        var v=parseInt(this.value,10);
+        _lgBanLimit=(v==20||v==30)?v:5;
+        lgRefresh();
+    };
 }
 
 var lgWatchLimitSel=document.getElementById('lg-watch-limit');

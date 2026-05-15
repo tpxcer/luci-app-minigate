@@ -2,6 +2,7 @@
 NGINX_CONF="/etc/minigate/nginx/minigate.conf"
 SITES_DIR="/etc/minigate/nginx/sites"
 CERT_DIR="/etc/minigate/certs"
+DEFAULT_CERT_DIR="/etc/minigate/certs/_default"
 LOGFILE="/var/log/minigate-proxy.log"
 PID_FILE="/var/run/minigate-nginx.pid"
 
@@ -17,6 +18,7 @@ events { worker_connections 512; }
 http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
+    server_names_hash_bucket_size 64;
     sendfile on; keepalive_timeout 65; client_max_body_size 100m;
     gzip on; gzip_types text/plain text/css application/json application/javascript text/xml;
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -62,6 +64,67 @@ check_h2() {
 get_ipv6_listen() {
     local v6=$(uci -q get minigate.global.ipv6_listen)
     echo "${v6:-0}"
+}
+
+ensure_default_cert() {
+    mkdir -p "$DEFAULT_CERT_DIR"
+    [ -f "${DEFAULT_CERT_DIR}/fullchain.pem" ] && [ -f "${DEFAULT_CERT_DIR}/key.pem" ] && return 0
+    openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
+        -subj "/CN=minigate.invalid" \
+        -keyout "${DEFAULT_CERT_DIR}/key.pem" \
+        -out "${DEFAULT_CERT_DIR}/fullchain.pem" >/dev/null 2>&1
+}
+
+write_default_server() {
+    local conf="$1" lport="$2" ssl="$3" h2s="$4" ipv6_listen="$5"
+    local ll="listen ${lport} default_server"
+    local ll6=""
+    local ex=""
+
+    [ "$ssl" = "1" ] && ll="${ll} ssl"
+    if [ "$ipv6_listen" = "1" ]; then
+        ll6="listen [::]:${lport} default_server"
+        [ "$ssl" = "1" ] && ll6="${ll6} ssl"
+    fi
+
+    if [ "$ssl" = "1" ]; then
+        if [ "$h2s" = "new" ]; then
+            ex="    http2 on;"
+        else
+            ll="${ll} http2"
+            [ -n "$ll6" ] && ll6="${ll6} http2"
+        fi
+        ensure_default_cert
+    fi
+
+    cat > "$conf" <<SEOF
+server {
+    ${ll};
+SEOF
+    [ -n "$ll6" ] && echo "    ${ll6};" >> "$conf"
+    cat >> "$conf" <<SEOF
+    server_name _;
+${ex}
+SEOF
+    if [ "$ssl" = "1" ]; then
+        cat >> "$conf" <<SEOF
+    ssl_certificate ${DEFAULT_CERT_DIR}/fullchain.pem;
+    ssl_certificate_key ${DEFAULT_CERT_DIR}/key.pem;
+SEOF
+    fi
+    cat >> "$conf" <<'SEOF'
+    return 444;
+}
+SEOF
+}
+
+ensure_default_server() {
+    local lport="$1" ssl="$2" h2s="$3" ipv6_listen="$4"
+    local key=$(echo "${lport}_${ssl}" | tr -c 'A-Za-z0-9_' '_')
+    local mark="/tmp/minigate_default_${key}.tmp"
+    [ -f "$mark" ] && return 0
+    : > "$mark"
+    write_default_server "${SITES_DIR}/000_default_${key}.conf" "$lport" "$ssl" "$h2s" "$ipv6_listen"
 }
 
 # 写一个完整的 server block（带 proxy_pass），同时支持 IPv6
@@ -168,6 +231,7 @@ generate_sites() {
         local h2=$(uci -q get minigate.${sec}.http2); h2=${h2:-1}
         local ws=$(uci -q get minigate.${sec}.websocket); ws=${ws:-0}
         [ -z "$domain" ] || [ -z "$taddr" ] && continue
+        ensure_default_server "$lport" "$ssl" "$h2s" "$ipv6_listen"
         idx=$((idx + 1))
         local conf="${SITES_DIR}/site_${idx}.conf"; > "$conf"
         write_server "$conf" "$domain" "$lport" "$taddr" "$tport" "$ssl" "$h2" "$ws" "$h2s" "$ipv6_listen"
@@ -193,11 +257,13 @@ generate_sites() {
         fi
 
         idx=$((idx + 1))
+        ensure_default_server "$lport" "$ssl" "$h2s" "$ipv6_listen"
         local conf="${SITES_DIR}/site_${idx}.conf"; > "$conf"
         write_server "$conf" "$domain" "$lport" "$taddr" "$tport" "$ssl" "1" "0" "$h2s" "$ipv6_listen"
     done
 
     rm -f /tmp/minigate_proxy_*.tmp
+    rm -f /tmp/minigate_default_*.tmp
 }
 
 do_stop() {

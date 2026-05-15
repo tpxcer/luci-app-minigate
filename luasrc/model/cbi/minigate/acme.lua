@@ -33,7 +33,7 @@ o.cfgvalue=function()
             local fp=cd.."/"..entry
             -- lstat 返回 table，检查 type 字段
             local st=fs.lstat(fp)
-            if st and st.type=="dir"then
+            if entry~="_default" and st and st.type=="dir"then
                 local cert=fp.."/fullchain.pem"
                 if fs.access(cert)then
                     found=true

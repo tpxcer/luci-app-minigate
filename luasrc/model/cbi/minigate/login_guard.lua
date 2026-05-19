@@ -2,16 +2,16 @@ local m, s, o
 local sys = require "luci.sys"
 local fs = require "nixio.fs"
 
-m = Map("minigate", "登录防护 (Login Guard)",
-    "监控 SSH（dropbear）和 LuCI 网页登录失败，达到阈值自动封禁源 IP。" ..
-    "适用于 SSH 端口被映射到公网、防爆破。LAN 私有 IP 自动豁免。")
+m = Map("minigate", translate("Login Guard"),
+    translate("Monitors SSH (dropbear) and LuCI login failures and auto-bans source IPs on threshold.") ..
+    " " .. translate("Intended for SSH ports exposed to the internet. LAN private IPs are always exempt."))
 
 m.on_after_commit = function(self)
     sys.call("/etc/init.d/minigate reload >/dev/null 2>&1 &")
 end
 
 -- ============== 实时状态 ==============
-s = m:section(NamedSection, "login_guard", "login_guard", "实时状态")
+s = m:section(NamedSection, "login_guard", "login_guard", translate("Live Status"))
 s.anonymous = true
 
 local lu = luci.dispatcher.build_url("admin/services/minigate/lg_status")
@@ -23,6 +23,37 @@ local gu = luci.dispatcher.build_url("admin/services/minigate/geo_lookup")
 o = s:option(DummyValue, "_dash")
 o.rawhtml = true
 o.cfgvalue = function()
+    local t_svc_status   = translate("Service Status")
+    local t_cur_banned   = translate("Currently Banned")
+    local t_counting     = translate("Counting Failures")
+    local t_banned_list  = translate("Banned IP List")
+    local t_counting_sub = translate("Counting Failures (below threshold)")
+    local t_show         = translate("Show")
+    local t_enter_ip     = translate("Enter IP to ban")
+    local t_ban          = translate("Ban")
+    local t_flush_all    = translate("Flush All")
+    local t_loading      = translate("Loading...")
+    local t_ip_addr      = translate("IP Address")
+    local t_location     = translate("Location")
+    local t_failures     = translate("Failures")
+    local t_last_seen    = translate("Last Seen")
+    local t_since_first  = translate("Since First Failure")
+    local t_remaining    = translate("Remaining")
+    local t_action       = translate("Action")
+    local t_none         = translate("None")
+    local t_no_bans      = translate("No bans.")
+    local t_querying     = translate("Querying...")
+    local t_disabled     = translate("Disabled")
+    local t_running      = translate("Running")
+    local t_not_running  = translate("Not running")
+    local t_unban        = translate("Unban")
+    local t_confirm_unban= translate("Confirm unban")
+    local t_failed       = translate("Failed")
+    local t_please_ip    = translate("Please enter an IP")
+    local t_invalid_ip   = translate("Invalid IP format")
+    local t_confirm_flush= translate("Confirm flush all bans? This cannot be undone.")
+    local t_refresh_fail = translate("Refresh failed, please retry.")
+    local t_render_err   = translate("Render error: ")
     local function esc(v)
         v = tostring(v or "")
         v = v:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
@@ -74,16 +105,16 @@ o.cfgvalue = function()
         local style = (i > 5) and ' style="display:none"' or ''
         watching_rows[#watching_rows + 1] =
             '<tr class="lg-watch-row" data-ip="' .. esc(item.ip) .. '" data-index="' .. tostring(i) .. '"' .. style .. '><td><code class="lg-ip">' .. esc(item.ip) .. '</code></td>' ..
-            '<td id="lg-watch-geo-initial-' .. tostring(i) .. '"><span style="color:#999">查询中...</span></td>' ..
+            '<td id="lg-watch-geo-initial-' .. tostring(i) .. '"><span style="color:#999">Querying...</span></td>' ..
             '<td><span style="font-weight:bold">' .. esc(item.count) .. ' / ' .. esc(threshold) .. '</span></td>' ..
             '<td>' .. esc(item.last_seen) .. '</td>' ..
             '<td>' .. esc(fmt_duration(item.age)) .. '</td></tr>'
     end
 
-    local initial_watching = '<div class="lg-empty">无</div>'
+    local initial_watching = '<div class="lg-empty">None</div>'
     if #watching_rows > 0 then
         initial_watching =
-            '<table class="lg-table"><thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>最近访问时间</th><th>距首次失败</th></tr></thead><tbody>' ..
+            '<table class="lg-table"><thead><tr><th>IP Address</th><th>Location</th><th>Failures</th><th>Last Seen</th><th>Since First Failure</th></tr></thead><tbody>' ..
             table.concat(watching_rows, "") ..
             '</tbody></table>'
     end
@@ -139,47 +170,47 @@ o.cfgvalue = function()
 <div class="lg-wrap">
 <div id="lg-summary" class="lg-summary">
   <div class="lg-card" style="--accent:#4caf50">
-    <div class="lg-card-title">服务状态</div>
+    <div class="lg-card-title">]] .. t_svc_status .. [[</div>
     <div id="lg-running" class="lg-card-value">--</div>
   </div>
   <div class="lg-card" style="--accent:#f44336">
-    <div class="lg-card-title">当前已封禁</div>
+    <div class="lg-card-title">]] .. t_cur_banned .. [[</div>
     <div id="lg-banned-count" class="lg-card-value" style="color:#ff7b72">--</div>
   </div>
   <div class="lg-card" style="--accent:#ff9800">
-    <div class="lg-card-title">失败计数中</div>
+    <div class="lg-card-title">]] .. t_counting .. [[</div>
     <div id="lg-watching-count" class="lg-card-value" style="color:#ffb35c">--</div>
   </div>
 </div>
 
 <div class="lg-panel">
   <div class="lg-panel-head">
-    <div class="lg-panel-title">已封禁 IP 列表</div>
+    <div class="lg-panel-title">]] .. t_banned_list .. [[</div>
     <div class="lg-tools">
-      <label class="lg-limit-label">显示
+      <label class="lg-limit-label">]] .. t_show .. [[
         <select id="lg-ban-limit" class="lg-select">
-          <option value="5">5 条</option>
-          <option value="20">20 条</option>
-          <option value="30">30 条</option>
+          <option value="5">5</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
         </select>
       </label>
-      <input id="lg-ban-input" class="lg-input" type="text" placeholder="输入 IP 手动封禁" />
-      <button class="lg-btn lg-btn-primary" onclick="lgManualBan()">封禁</button>
-      <button class="lg-btn lg-btn-danger" onclick="lgFlushAll()">清空全部</button>
+      <input id="lg-ban-input" class="lg-input" type="text" placeholder="]] .. t_enter_ip .. [[" />
+      <button class="lg-btn lg-btn-primary" onclick="lgManualBan()">]] .. t_ban .. [[</button>
+      <button class="lg-btn lg-btn-danger" onclick="lgFlushAll()">]] .. t_flush_all .. [[</button>
     </div>
   </div>
-  <div id="lg-banned-list" class="lg-table-wrap"><div class="lg-empty">加载中...</div></div>
+  <div id="lg-banned-list" class="lg-table-wrap"><div class="lg-empty">]] .. t_loading .. [[</div></div>
 </div>
 
 <div class="lg-panel">
   <div class="lg-panel-head">
-    <div class="lg-panel-title">失败计数中（未达阈值）</div>
+    <div class="lg-panel-title">]] .. t_counting_sub .. [[</div>
     <div class="lg-tools">
-      <label class="lg-limit-label">显示
+      <label class="lg-limit-label">]] .. t_show .. [[
         <select id="lg-watch-limit" class="lg-select">
-          <option value="5">5 条</option>
-          <option value="20">20 条</option>
-          <option value="30">30 条</option>
+          <option value="5">5</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
         </select>
       </label>
     </div>
@@ -203,7 +234,7 @@ function lgQueryGeo(ip,cb){
     }
     _lgGeoPending[ip]=[cb];
     XHR.get(']] .. gu .. [[',{ip:ip},function(x,d){
-        var loc=(d&&d.geo)?d.geo:'未知';
+        var loc=(d&&d.geo)?d.geo:']] .. translate('Unknown') .. [[';
         var list=_lgGeoPending[ip]||[];
         delete _lgGeoPending[ip];
         _lgGeoCache[ip]=loc;
@@ -244,28 +275,28 @@ function fmtDuration(s){
 }
 
 function lgUnban(ip,btn){
-    if(!confirm('确认解封 '+ip+' ?'))return;
+    if(!confirm(']] .. t_confirm_unban .. [[ '+ip+' ?'))return;
     btn.disabled=true; btn.textContent='...';
     XHR.get(']] .. uu .. [[',{ip:ip},function(x,d){
         if(d&&d.success){lgRefresh();}
-        else{btn.disabled=false;btn.textContent='解封';alert('失败');}
+        else{btn.disabled=false;btn.textContent=']] .. t_unban .. [[';alert(']] .. t_failed .. [[');}
     });
 }
 
 function lgManualBan(){
     var ip=document.getElementById('lg-ban-input').value.trim();
-    if(!ip){alert('请输入 IP');return;}
-    if(!ip.match(/^\d+\.\d+\.\d+\.\d+$/)){alert('IP 格式不对');return;}
+    if(!ip){alert(']] .. t_please_ip .. [[');return;}
+    if(!ip.match(/^\d+\.\d+\.\d+\.\d+$/)){alert(']] .. t_invalid_ip .. [[');return;}
     XHR.get(']] .. bu .. [[',{ip:ip},function(x,d){
         if(d&&d.success){
             document.getElementById('lg-ban-input').value='';
             lgRefresh();
-        }else alert('失败');
+        }else alert(']] .. t_failed .. [[');
     });
 }
 
 function lgFlushAll(){
-    if(!confirm('确认清空所有封禁？此操作不可撤销。'))return;
+    if(!confirm(']] .. t_confirm_flush .. [['))return;
     XHR.get(']] .. fu .. [[',null,function(x,d){
         if(d&&d.success)lgRefresh();
     });
@@ -277,11 +308,11 @@ function lgRenderWatching(watching,threshold){
     watching=watching||[];
     threshold=Number(threshold)||3;
     if(watching.length==0){
-        wEl.innerHTML='<div class="lg-empty">无</div>';
+        wEl.innerHTML='<div class="lg-empty">]] .. t_none .. [[</div>';
         return;
     }
     var h2='<table class="lg-table">';
-    h2+='<thead><tr><th>IP 地址</th><th>归属地</th><th>失败次数</th><th>最近访问时间</th><th>距首次失败</th></tr></thead><tbody>';
+    h2+='<thead><tr><th>]] .. t_ip_addr .. [[</th><th>]] .. t_location .. [[</th><th>]] .. t_failures .. [[</th><th>]] .. t_last_seen .. [[</th><th>]] .. t_since_first .. [[</th></tr></thead><tbody>';
     for(var j=0;j<watching.length;j++){
         var w=watching[j]||{};
         var ip=w.ip||'--';
@@ -292,7 +323,7 @@ function lgRenderWatching(watching,threshold){
         var color=pct>=66?'#ff7b72':(pct>=33?'#ffb35c':'#aaa');
         h2+='<tr>';
         h2+='<td><code class="lg-ip">'+ip+'</code></td>';
-        h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">查询中...</span></td>';
+        h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">]] .. t_querying .. [[</span></td>';
         h2+='<td><span style="color:'+color+';font-weight:bold">'+count+' / '+threshold+'</span></td>';
         h2+='<td>'+lastSeen+'</td>';
         h2+='<td>'+fmtDuration(age)+'</td>';
@@ -322,16 +353,16 @@ function lgRenderWatching(watching,threshold){
 function lgApplyStatus(d){
         if(!d){
             var wEl=document.getElementById('lg-watching-list');
-            if(wEl)wEl.innerHTML='<div class="lg-empty">刷新失败，请稍后再试</div>';
+            if(wEl)wEl.innerHTML='<div class="lg-empty">]] .. t_refresh_fail .. [[</div>';
             return;
         }
         // 服务状态
         var rEl=document.getElementById('lg-running');
         if(d.enabled=='1'){
-            if(d.running) rEl.innerHTML='<span style="color:#4caf50">✓ 运行中</span>';
-            else rEl.innerHTML='<span style="color:#f44336">✗ 未运行</span>';
+            if(d.running) rEl.innerHTML='<span style="color:#4caf50">&#10003; ]] .. t_running .. [[</span>';
+            else rEl.innerHTML='<span style="color:#f44336">&#10007; ]] .. t_not_running .. [[</span>';
         }else{
-            rEl.innerHTML='<span style="color:#999">未启用</span>';
+            rEl.innerHTML='<span style="color:#999">]] .. t_disabled .. [[</span>';
         }
         document.getElementById('lg-banned-count').textContent=(d.banned_total!=null)?d.banned_total:(d.banned||[]).length;
         document.getElementById('lg-watching-count').textContent=(d.watching_total!=null)?d.watching_total:(d.watching||[]).length;
@@ -339,17 +370,17 @@ function lgApplyStatus(d){
         // 已封禁列表
         var listEl=document.getElementById('lg-banned-list');
         if(!d.banned||d.banned.length==0){
-            listEl.innerHTML='<div class="lg-empty">暂无封禁</div>';
+            listEl.innerHTML='<div class="lg-empty">]] .. t_no_bans .. [[</div>';
         }else{
             var h='<table class="lg-table">';
-            h+='<thead><tr><th>IP 地址</th><th>归属地</th><th>剩余时间</th><th>操作</th></tr></thead><tbody>';
+            h+='<thead><tr><th>]] .. t_ip_addr .. [[</th><th>]] .. t_location .. [[</th><th>]] .. t_remaining .. [[</th><th>]] .. t_action .. [[</th></tr></thead><tbody>';
             for(var i=0;i<d.banned.length;i++){
                 var b=d.banned[i];
                 h+='<tr>';
                 h+='<td><code class="lg-ip lg-ip-danger">'+b.ip+'</code></td>';
-                h+='<td id="lg-geo-'+i+'"><span style="color:#999">查询中...</span></td>';
+                h+='<td id="lg-geo-'+i+'"><span style="color:#999">]] .. t_querying .. [[</span></td>';
                 h+='<td>'+fmtDuration(b.remaining)+'</td>';
-                h+='<td><button class="lg-unban" onclick="lgUnban(\''+b.ip+'\',this)">解封</button></td>';
+                h+='<td><button class="lg-unban" onclick="lgUnban(\''+b.ip+'\',this)">]] .. t_unban .. [[</button></td>';
                 h+='</tr>';
             }
             h+='</tbody></table>';
@@ -371,7 +402,7 @@ function lgApplyStatus(d){
         try{lgRenderWatching(d.watching,d.threshold);}
         catch(e){
             var wEl=document.getElementById('lg-watching-list');
-            if(wEl)wEl.innerHTML='<div class="lg-empty">渲染失败：'+e.message+'</div>';
+            if(wEl)wEl.innerHTML='<div class="lg-empty">]] .. t_render_err .. [['+e.message+'</div>';
         }
 
 }
@@ -412,41 +443,40 @@ setInterval(lgRefresh,8000);
 ]]
 end
 
--- ============== 设置 ==============
-s = m:section(NamedSection, "login_guard", "login_guard", "设置")
+s = m:section(NamedSection, "login_guard", "login_guard", translate("Settings"))
 s.anonymous = true
 
-o = s:option(Flag, "enabled", "启用登录防护")
-o.description = "开启后将自动监控 SSH/LuCI 失败登录。LAN IP 永远不会被封禁。"
+o = s:option(Flag, "enabled", translate("Enable Login Guard"))
+o.description = translate("When enabled, SSH/LuCI login failures are monitored. LAN IPs are never banned.")
 o.rmempty = false
 
-o = s:option(Value, "threshold", "失败次数阈值")
-o.description = "在「失败窗口」时间内累积达到此次数则封禁。"
+o = s:option(Value, "threshold", translate("Failure threshold"))
+o.description = translate("Number of failures within the window that triggers a ban.")
 o.datatype = "uinteger"
 o.default = "3"
 o.placeholder = "3"
 
-o = s:option(ListValue, "window", "失败窗口（秒）")
-o.description = "在多长时间内累计失败次数。超过此时间未再失败则计数清零。"
-o:value("300", "5 分钟")
-o:value("600", "10 分钟")
-o:value("1800", "30 分钟")
-o:value("3600", "1 小时")
-o:value("86400", "24 小时")
+o = s:option(ListValue, "window", translate("Failure window (seconds)"))
+o.description = translate("Time window for counting failures. Counter resets if no failures occur within this period.")
+o:value("300", translate("5 minutes"))
+o:value("600", translate("10 minutes"))
+o:value("1800", translate("30 minutes"))
+o:value("3600", translate("1 hour"))
+o:value("86400", translate("24 hours"))
 o.default = "600"
 
-o = s:option(ListValue, "bantime", "封禁时长")
-o:value("3600", "1 小时")
-o:value("21600", "6 小时")
-o:value("43200", "12 小时")
-o:value("86400", "24 小时")
-o:value("604800", "1 周")
-o:value("2592000", "30 天")
+o = s:option(ListValue, "bantime", translate("Ban duration"))
+o:value("3600", translate("1 hour"))
+o:value("21600", translate("6 hours"))
+o:value("43200", translate("12 hours"))
+o:value("86400", translate("24 hours"))
+o:value("604800", translate("1 week"))
+o:value("2592000", translate("30 days"))
 o.default = "43200"
 
-o = s:option(DynamicList, "whitelist", "白名单（额外）")
-o.description = "除了 LAN 私有段（192.168.x、10.x、127.x、172.16-31.x）默认豁免外，再加这些 IP/CIDR。" ..
-                "支持单 IP（如 1.2.3.4）或 /8 /16 /24 /32 子网。"
-o.placeholder = "如 8.8.8.8 或 203.0.113.0/24"
+o = s:option(DynamicList, "whitelist", translate("Whitelist (extra)"))
+o.description = translate("In addition to LAN private ranges (192.168.x, 10.x, 127.x, 172.16-31.x) which are always exempt, add these IPs/CIDRs.") ..
+                " " .. translate("Supports single IP (e.g. 1.2.3.4) or /8 /16 /24 /32 subnets.")
+o.placeholder = "e.g. 8.8.8.8 or 203.0.113.0/24"
 
 return m

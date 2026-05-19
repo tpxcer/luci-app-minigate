@@ -1,0 +1,9 @@
+{
+	"admin/services/minigate": {
+		"title": "MiniGate",
+		"order": 60,
+		"action": {
+			"type": "firstchild"
+		}
+	}
+}

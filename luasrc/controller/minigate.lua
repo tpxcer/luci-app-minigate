@@ -2,12 +2,12 @@ module("luci.controller.minigate", package.seeall)
 
 function index()
     entry({"admin","services","minigate"}, alias("admin","services","minigate","general"), "MiniGate", 60).dependent=false
-    entry({"admin","services","minigate","general"}, cbi("minigate/general"), "总览", 10)
-    entry({"admin","services","minigate","ddns"}, cbi("minigate/ddns"), "动态DNS", 20)
-    entry({"admin","services","minigate","acme"}, cbi("minigate/acme"), "SSL 证书", 30)
-    entry({"admin","services","minigate","proxy"}, cbi("minigate/proxy"), "反向代理", 40)
-    entry({"admin","services","minigate","login_guard"}, cbi("minigate/login_guard"), "登录防护", 45)
-    entry({"admin","services","minigate","log"}, template("minigate/log"), "日志", 50)
+    entry({"admin","services","minigate","general"}, cbi("minigate/general"), translate("Overview"), 10)
+    entry({"admin","services","minigate","ddns"}, cbi("minigate/ddns"), translate("Dynamic DNS"), 20)
+    entry({"admin","services","minigate","acme"}, cbi("minigate/acme"), translate("SSL Certificate"), 30)
+    entry({"admin","services","minigate","proxy"}, cbi("minigate/proxy"), translate("Reverse Proxy"), 40)
+    entry({"admin","services","minigate","login_guard"}, cbi("minigate/login_guard"), translate("Login Guard"), 45)
+    entry({"admin","services","minigate","log"}, template("minigate/log"), translate("Log"), 50)
     entry({"admin","services","minigate","status"}, call("action_status")).leaf=true
     entry({"admin","services","minigate","get_log"}, call("action_get_log")).leaf=true
     entry({"admin","services","minigate","acme_install"}, call("action_acme_install")).leaf=true
@@ -115,7 +115,7 @@ end
 function action_acme_install()
     local sys=require"luci.sys"; sys.call("/bin/sh /usr/lib/minigate/acme.sh install 2>&1")
     local fs=require"nixio.fs"; local ok=fs.access("/etc/minigate/acme/data/acme.sh")and fs.access("/etc/minigate/acme/data/dnsapi/dns_cf.sh")
-    luci.http.prepare_content("application/json"); luci.http.write_json({success=ok,message=ok and"安装成功"or"安装失败"})
+    luci.http.prepare_content("application/json"); luci.http.write_json({success=ok,message=ok and translate("Installation successful") or translate("Installation failed")})
 end
 
 function action_acme_issue()
@@ -123,7 +123,7 @@ function action_acme_issue()
     local cmd="/bin/sh /usr/lib/minigate/acme.sh issue"; if d~=""then cmd=cmd.." '"..d.."'"end
     sys.call(cmd.." 2>&1")
     local uci=require"luci.model.uci".cursor(); local st=uci:get("minigate","acme","status")or"unknown"
-    luci.http.prepare_content("application/json"); luci.http.write_json({success=(st=="ok"),message=(st=="ok")and"签发成功！"or"签发失败，查看日志"})
+    luci.http.prepare_content("application/json"); luci.http.write_json({success=(st=="ok"),message=(st=="ok") and translate("Certificate issued successfully") or translate("Certificate issuance failed, check log")})
 end
 
 function action_ddns_sync()
@@ -204,7 +204,7 @@ function action_geo_lookup()
     -- 安全校验：只允许 IP 地址字符
     if not ip:match("^[%d%.%:a-fA-F]+$") then
         luci.http.prepare_content("application/json")
-        luci.http.write_json({ ip = ip, geo = "无效IP" })
+        luci.http.write_json({ ip = ip, geo = translate("Invalid IP") })
         return
     end
 
@@ -262,9 +262,9 @@ function action_geo_lookup()
         end
     end
 
-    fs.writefile(cache_file, geo or "未知")
+    fs.writefile(cache_file, geo or translate("Unknown"))
     luci.http.prepare_content("application/json")
-    luci.http.write_json({ ip = ip, geo = geo or "未知" })
+    luci.http.write_json({ ip = ip, geo = geo or translate("Unknown") })
 end
 
 -- ============== 登录防护 API ==============
@@ -378,7 +378,7 @@ function action_lg_ban()
     local ip = luci.http.formvalue("ip") or ""
     if not ip:match("^%d+%.%d+%.%d+%.%d+$") then
         luci.http.prepare_content("application/json")
-        luci.http.write_json({success=false, error="无效 IP"})
+        luci.http.write_json({success=false, error=translate("Invalid IP")})
         return
     end
     local rc = sys.call("/bin/sh /usr/lib/minigate/login_guard.sh ban '" .. ip .. "' >/dev/null 2>&1")
@@ -391,7 +391,7 @@ function action_lg_unban()
     local ip = luci.http.formvalue("ip") or ""
     if not ip:match("^%d+%.%d+%.%d+%.%d+$") then
         luci.http.prepare_content("application/json")
-        luci.http.write_json({success=false, error="无效 IP"})
+        luci.http.write_json({success=false, error=translate("Invalid IP")})
         return
     end
     local rc = sys.call("/bin/sh /usr/lib/minigate/login_guard.sh unban '" .. ip .. "' >/dev/null 2>&1")

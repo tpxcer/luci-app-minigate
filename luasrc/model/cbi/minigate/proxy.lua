@@ -2,7 +2,7 @@ local m, s, o
 local sys = require "luci.sys"
 local uc = require "luci.model.uci".cursor()
 
-m = Map("minigate", "MiniGate - 反向代理", "保存后自动生效。")
+m = Map("minigate", translate("MiniGate - Reverse Proxy"), translate("Changes take effect automatically after save."))
 
 m.on_after_commit = function(self)
     sys.call("sleep 1 && /bin/sh /usr/lib/minigate/proxy.sh reload >/dev/null 2>&1 &")
@@ -31,49 +31,49 @@ end)
 -- ================================
 if #wildcard_domains > 0 then
 
-s = m:section(TypedSection, "proxy_wildcard", "通配符域名",
-    "配置监听端口和HTTPS，具体转发由「子域名」控制。")
-s.anonymous = false
+s = m:section(TypedSection, "proxy_wildcard", translate("Wildcard domains"),
+    translate("Configure listening port and HTTPS. Forwarding is controlled by subdomain rules."))
+s.anonymous = true
 s.addremove = true
 s.template = "cbi/tblsection"
-s.sectionhead = "名称"
 
-o = s:option(ListValue, "enabled", "启用")
-o:value("1", "✓ 启用")
-o:value("0", "✗ 禁用")
+o = s:option(Value, "name", translate("Name"))
+o.rmempty = true
+o.placeholder = translate("e.g. my-site")
+
+o = s:option(ListValue, "enabled", translate("Enable"))
+o:value("1", translate("Enabled"))
+o:value("0", translate("Disabled"))
 o.default = "1"
 o.rmempty = false
 
-o = s:option(ListValue, "domain", "域名")
-o:value("", "-- 请选择 --")
+o = s:option(ListValue, "domain", translate("Domain"))
+o:value("", "-- " .. translate("Select") .. " --")
 for _, d in ipairs(wildcard_domains) do
     local label = d
     if ddns_ok[d] then label = d .. " ✓" end
     o:value(d, label)
 end
-o.rmempty = false
+o.rmempty = true
 
-o = s:option(Value, "listen_port", "监听端口")
+o = s:option(Value, "listen_port", translate("Listen port"))
 o.datatype = "port"
 o.default = "2000"
-o.rmempty = false
+o.rmempty = true
 
 o = s:option(ListValue, "ssl", "HTTPS")
-o:value("1", "✓ 开启")
-o:value("0", "✗ 关闭")
+o:value("1", translate("Enabled"))
+o:value("0", translate("Disabled"))
 o.default = "1"
 o.rmempty = false
 
--- ================================
--- 子域名规则
--- ================================
-s = m:section(TypedSection, "subproxy", "子域名规则")
+s = m:section(TypedSection, "subproxy", translate("Subdomain rules"))
 s.anonymous = true
 s.addremove = true
 s.sortable = true
 s.template = "cbi/tblsection"
 
-o = s:option(ListValue, "parent_domain", "主域名")
+o = s:option(ListValue, "parent_domain", translate("Parent domain"))
 o:value("", "--")
 for _, d in ipairs(wildcard_domains) do
     local base = d:gsub("^%*%.", "")
@@ -81,20 +81,20 @@ for _, d in ipairs(wildcard_domains) do
 end
 o.rmempty = false
 
-o = s:option(Value, "prefix", "前缀")
+o = s:option(Value, "prefix", translate("Prefix"))
 o.rmempty = false
 o.placeholder = "app"
 
-o = s:option(Value, "target_addr", "目标地址")
+o = s:option(Value, "target_addr", translate("Target address"))
 o.rmempty = false
 o.placeholder = "192.168.1.100"
 
-o = s:option(Value, "target_port", "端口")
+o = s:option(Value, "target_port", translate("Port"))
 o.datatype = "port"
 o.default = "80"
 o.rmempty = false
 
-o = s:option(DummyValue, "_final", "实际域名")
+o = s:option(DummyValue, "_final", translate("Resolved domain"))
 o.rawhtml = true
 o.cfgvalue = function(self, section)
     local base = m.uci:get("minigate", section, "parent_domain") or ""
@@ -112,52 +112,55 @@ end -- wildcard_domains
 -- ================================
 if #normal_domains > 0 or #wildcard_domains == 0 then
 
-s = m:section(TypedSection, "proxy", "代理规则",
-    "非通配符域名的反向代理。")
-s.anonymous = false
+s = m:section(TypedSection, "proxy", translate("Proxy rules"),
+    translate("Reverse proxy for non-wildcard domains."))
+s.anonymous = true
 s.addremove = true
 s.template = "cbi/tblsection"
 s.sortable = true
-s.sectionhead = "名称"
 
-o = s:option(ListValue, "enabled", "启用")
-o:value("1", "✓ 启用")
-o:value("0", "✗ 禁用")
+o = s:option(Value, "name", translate("Name"))
+o.rmempty = true
+o.placeholder = translate("e.g. my-site")
+
+o = s:option(ListValue, "enabled", translate("Enable"))
+o:value("1", translate("Enabled"))
+o:value("0", translate("Disabled"))
 o.default = "1"
 o.rmempty = false
 
-o = s:option(ListValue, "domain", "域名")
-o:value("", "-- 请选择 --")
+o = s:option(ListValue, "domain", translate("Domain"))
+o:value("", "-- " .. translate("Select") .. " --")
 for _, d in ipairs(normal_domains) do
     local label = d
     if ddns_ok[d] then label = d .. " ✓" end
     o:value(d, label)
 end
-o.rmempty = false
+o.rmempty = true
 
-o = s:option(Value, "listen_port", "端口")
+o = s:option(Value, "listen_port", translate("Port"))
 o.datatype = "port"
 o.default = "443"
-o.rmempty = false
+o.rmempty = true
 
-o = s:option(Value, "target_addr", "目标地址")
-o.rmempty = false
+o = s:option(Value, "target_addr", translate("Target address"))
+o.rmempty = true
 o.placeholder = "192.168.1.100"
 
-o = s:option(Value, "target_port", "目标端口")
+o = s:option(Value, "target_port", translate("Target port"))
 o.datatype = "port"
 o.default = "80"
-o.rmempty = false
+o.rmempty = true
 
 o = s:option(ListValue, "ssl", "HTTPS")
-o:value("1", "✓ 开启")
-o:value("0", "✗ 关闭")
+o:value("1", translate("Enabled"))
+o:value("0", translate("Disabled"))
 o.default = "1"
 o.rmempty = false
 
 o = s:option(ListValue, "websocket", "WS")
-o:value("0", "✗ 关闭")
-o:value("1", "✓ 开启")
+o:value("0", translate("Disabled"))
+o:value("1", translate("Enabled"))
 o.default = "0"
 o.rmempty = false
 

@@ -1,7 +1,7 @@
 local m, s, o
 local sys = require "luci.sys"
 
-m = Map("minigate", "MiniGate 轻网关", "轻量级网关管理：动态域名解析（IPv4/IPv6双栈）、SSL 证书签发、反向代理。")
+m = Map("minigate", translate("MiniGate Gateway"), translate("Lightweight gateway management: DDNS (IPv4/IPv6 dual-stack), SSL certificate issuance, reverse proxy."))
 
 m.on_after_commit = function(self)
     local en = self.uci:get("minigate", "global", "enabled")
@@ -12,9 +12,9 @@ m.on_after_commit = function(self)
     end
 end
 
-s = m:section(NamedSection, "global", "global", "服务状态")
+s = m:section(NamedSection, "global", "global", translate("Service Status"))
 s.anonymous = true
-s:tab("status", "总览")
+s:tab("status", translate("Overview"))
 
 local su = luci.dispatcher.build_url("admin/services/minigate/status")
 
@@ -24,6 +24,33 @@ o.cfgvalue = function()
     local su = luci.dispatcher.build_url("admin/services/minigate/status")
     local au = luci.dispatcher.build_url("admin/services/minigate/proxy_access")
     local gu = luci.dispatcher.build_url("admin/services/minigate/geo_lookup")
+    local t_ddns     = translate("Dynamic DNS")
+    local t_cert     = translate("SSL/TLS Certificate")
+    local t_proxy    = translate("Reverse Proxy")
+    local t_accesslog = translate("Access Log")
+    local t_show     = translate("Show")
+    local t_status   = translate("Status")
+    local t_ip       = translate("IP Address")
+    local t_loc      = translate("Location")
+    local t_last     = translate("Last Visit")
+    local t_domain   = translate("Domain")
+    local t_count    = translate("Count")
+    local t_loading  = translate("Loading...")
+    local t_norecord = translate("No access records yet.")
+    local t_online   = translate("Online")
+    local t_offline  = translate("Offline")
+    local t_querying = translate("Querying...")
+    local t_notcfg   = translate("Not configured")
+    local t_disabled = translate("Disabled")
+    local t_stopped  = translate("Stopped")
+    local t_expires  = translate("Expires: ")
+    local t_updated  = translate("Updated: ")
+    local t_next     = translate("Next: ")
+    local t_nginxrun = translate("Nginx running")
+    local t_running  = translate("Running")
+    local t_valid    = translate("Valid")
+    local t_partial  = translate("Partial")
+    local t_error_s  = translate("Error")
     return [[
 <style>
 .mg-wrap{display:flex;flex-direction:column;gap:16px}
@@ -76,17 +103,17 @@ o.cfgvalue = function()
 <div class="mg-wrap">
 <div id="mg" class="mg-status-grid">
 <div id="mg-ddns-card" class="mg-card" style="--accent:#4caf50">
-<div class="mg-card-title">动态 DNS</div>
+<div class="mg-card-title">]] .. t_ddns .. [[</div>
 <div id="mg-d1" class="mg-card-state">--</div>
 <div id="mg-d2" class="mg-card-body"></div>
 </div>
 <div id="mg-cert-card" class="mg-card" style="--accent:#2196f3">
-<div class="mg-card-title">SSL/TLS 证书</div>
+<div class="mg-card-title">]] .. t_cert .. [[</div>
 <div id="mg-a1" class="mg-card-state">--</div>
 <div id="mg-a2" class="mg-card-body"></div>
 </div>
 <div id="mg-proxy-card" class="mg-card" style="--accent:#ff9800">
-<div class="mg-card-title">反向代理</div>
+<div class="mg-card-title">]] .. t_proxy .. [[</div>
 <div id="mg-p1" class="mg-card-state">--</div>
 <div id="mg-p2" class="mg-card-body"></div>
 </div>
@@ -94,15 +121,15 @@ o.cfgvalue = function()
 
 <div id="mg-visitors" class="mg-panel">
 <div class="mg-panel-head">
-<div class="mg-panel-title">访问记录 <span id="mg-v-count" class="mg-count"></span></div>
-<label class="mg-limit-label">显示
+<div class="mg-panel-title">]] .. t_accesslog .. [[ <span id="mg-v-count" class="mg-count"></span></div>
+<label class="mg-limit-label">]] .. t_show .. [[
 <select id="mg-v-limit" class="mg-select">
 <option value="5" selected>5</option>
 <option value="20">20</option>
 <option value="50">50</option>
-</select>条</label>
+</select></label>
 </div>
-<div id="mg-v-list" class="mg-table-wrap"><div class="mg-empty">加载中...</div></div>
+<div id="mg-v-list" class="mg-table-wrap"><div class="mg-empty">]] .. t_loading .. [[</div></div>
 </div>
 </div>
 
@@ -126,7 +153,7 @@ function queryGeo(ip,cb){
     }
     _geoPending[ip]=[cb];
     XHR.get(']] .. gu .. [[',{ip:ip},function(x,d){
-        var loc=(d&&d.geo)?d.geo:'未知';
+        var loc=(d&&d.geo)?d.geo:'Unknown';
         var list=_geoPending[ip]||[];
         delete _geoPending[ip];
         _geoCache[ip]=loc;
@@ -139,23 +166,23 @@ function loadVisitors(){
         var el=document.getElementById('mg-v-list');
         var ct=document.getElementById('mg-v-count');
         if(!d||!d.visitors||d.visitors.length===0){
-            el.innerHTML='<div class="mg-empty">暂无访问记录</div>';
+            el.innerHTML='<div class="mg-empty">]] .. t_norecord .. [[</div>';
             ct.textContent='';
             return;
         }
-        ct.textContent='('+d.visitors.length+' 个IP)';
+        ct.textContent=d.visitors&&d.visitors.length?'('+d.visitors.length+' IPs)':'';
         var h='<table class="mg-table">';
-        h+='<thead><tr><th>状态</th><th>IP 地址</th><th>归属地</th><th>最后访问</th><th>域名</th><th>次数</th></tr></thead><tbody>';
+        h+='<thead><tr><th>]] .. t_status .. [[</th><th>]] .. t_ip .. [[</th><th>]] .. t_loc .. [[</th><th>]] .. t_last .. [[</th><th>]] .. t_domain .. [[</th><th>]] .. t_count .. [[</th></tr></thead><tbody>';
         for(var i=0;i<d.visitors.length;i++){
             var v=d.visitors[i];
             var dot=v.online
-                ?'<span class="mg-dot on" title="在线"></span>'
-                :'<span class="mg-dot" title="离线"></span>';
-            var stxt=v.online?'<span style="color:#72d987">在线</span>':'<span style="color:#a6a6a6">离线</span>';
+                ?'<span class="mg-dot on" title="]] .. t_online .. [["></span>'
+                :'<span class="mg-dot" title="]] .. t_offline .. [["></span>';
+            var stxt=v.online?'<span style="color:#72d987">]] .. t_online .. [[</span>':'<span style="color:#a6a6a6">]] .. t_offline .. [[</span>';
             h+='<tr>';
             h+='<td><span class="mg-status">'+dot+stxt+'</span></td>';
             h+='<td><code class="mg-ip">'+v.ip+'</code></td>';
-            h+='<td id="geo-'+i+'"><span style="color:#999">查询中...</span></td>';
+            h+='<td id="geo-'+i+'"><span style="color:#999">]] .. t_querying .. [[</span></td>';
             h+='<td style="white-space:nowrap">'+fmtT(v.last_time)+'</td>';
             h+='<td>'+v.domain+'</td>';
             h+='<td>'+v.count+'</td>';
@@ -195,7 +222,7 @@ var card=document.getElementById('mg-ddns-card');
 if(d.ddns_list&&d.ddns_list.length>0){
 var e=d.ddns_list[0];
 var c=e.status=='ok'?'#4caf50':(e.status=='partial'?'#ff9800':(e.enabled=='1'?'#f44336':'#999'));
-var l=e.status=='ok'?'\u2713 \u8fd0\u884c\u4e2d':(e.status=='partial'?'\u26a0 \u90e8\u5206\u6210\u529f':(e.enabled=='1'?'\u26a0 \u5f02\u5e38':'\u672a\u542f\u7528'));
+var l=e.status=='ok'?'\u2713 ]] .. t_running .. [[':(e.status=='partial'?'\u26a0 ]] .. t_partial .. [[':(e.enabled=='1'?'\u26a0 ]] .. t_error_s .. [[':']] .. t_disabled .. [['));
 card.style.setProperty('--accent',c);
 d1.innerHTML='<span style="color:'+c+'">'+l+'</span>';
 var info=(e.domain||'')+'\n';
@@ -208,20 +235,20 @@ if(sm){
     var onlyIpStatus=sm.replace(/A:[^;]+;?/g,'').replace(/AAAA:[^;]+;?/g,'').replace(/\s+/g,'')=='';
     if(!(onlyIpStatus&&(dupA||dupAAAA)))info+=sm+'\n';
 }
-if(e.last_update)info+='\u66f4\u65b0: '+e.last_update+'\n';
-if(e.next_sync)info+='\u4e0b\u6b21: '+e.next_sync;
-if(d.ddns_list.length>1)info+='\n(+'+(d.ddns_list.length-1)+' \u6761\u8bb0\u5f55)';
+if(e.last_update)info+=']] .. t_updated .. [[\u200b'+e.last_update+'\n';
+if(e.next_sync)info+=']] .. t_next .. [[\u200b'+e.next_sync;
+if(d.ddns_list.length>1)info+='\n(+'+(d.ddns_list.length-1)+' more)';
 d2.innerHTML=info.replace(/\n/g,'<br>');
-}else{d1.innerHTML='<span style="color:#999">\u672a\u914d\u7f6e</span>';d2.textContent='';card.style.setProperty('--accent','#777');}
+}else{d1.innerHTML='<span style="color:#999">]] .. t_notcfg .. [[</span>';d2.textContent='';card.style.setProperty('--accent','#777');}
 
 var a1=document.getElementById('mg-a1'),a2=document.getElementById('mg-a2');
 if(d.acme&&d.acme.enabled=='1'){
-a1.innerHTML=d.acme.status=='ok'?'<span style="color:#2196f3">\u2713 \u6709\u6548</span>':'<span style="color:#f44336">'+d.acme.status+'</span>';
-a2.innerHTML=(d.acme.last_domain||'')+(d.acme.cert_expiry?'<br>\u8fc7\u671f: '+d.acme.cert_expiry:'');
-}else{a1.innerHTML='<span style="color:#999">\u672a\u542f\u7528</span>';a2.textContent='';}
+a1.innerHTML=d.acme.status=='ok'?'<span style="color:#2196f3">\u2713 ]] .. t_valid .. [[</span>':'<span style="color:#f44336">'+d.acme.status+'</span>';
+a2.innerHTML=(d.acme.last_domain||'')+(d.acme.cert_expiry?'<br>]] .. t_expires .. [[\u200b'+d.acme.cert_expiry:'');
+}else{a1.innerHTML='<span style="color:#999">]] .. t_disabled .. [[</span>';a2.textContent='';}
 
 var p1=document.getElementById('mg-p1'),p2=document.getElementById('mg-p2');
-p1.innerHTML=d.proxy_running?'<span style="color:#ff9800">\u2713 \u8fd0\u884c\u4e2d</span>':'<span style="color:#999">\u5df2\u505c\u6b62</span>';
+p1.innerHTML=d.proxy_running?'<span style="color:#ff9800">\u2713 ]] .. t_running .. [[</span>':'<span style="color:#999">]] .. t_stopped .. [[</span>';
 var pinfo='';
 if(d.proxy_rules&&d.proxy_rules.length>0){
 for(var i=0;i<d.proxy_rules.length;i++){
@@ -229,7 +256,7 @@ var r=d.proxy_rules[i];
 var url=r.scheme+'://'+r.domain+(r.listen_port!='443'&&r.listen_port!='80'?':'+r.listen_port:'');
 var v6tag=r.ipv6_listen=='1'?' <span style="color:#2196f3;font-size:10px">[IPv6]</span>':'';
 pinfo+='<div><span class="mg-link">'+url+'</span>'+v6tag+' \u2192 '+r.target+'</div>';
-}}else if(d.proxy_running){pinfo='Nginx \u8fd0\u884c\u4e2d';}
+}}else if(d.proxy_running){pinfo=']] .. t_nginxrun .. [[';}
 p2.innerHTML=pinfo;
 });
 
@@ -238,14 +265,14 @@ setInterval(loadVisitors,15000);
 </script>
 ]] end
 
-s = m:section(NamedSection, "global", "global", "全局设置")
+s = m:section(NamedSection, "global", "global", translate("Global Settings"))
 s.anonymous = true
-o = s:option(Flag, "enabled", "启用 MiniGate")
-o.description = "总开关。关闭后停止 DDNS 定时任务、ACME 续期和反向代理。保存后立即生效。"
+o = s:option(Flag, "enabled", translate("Enable MiniGate"))
+o.description = translate("Master switch. Disabling stops DDNS cron, ACME renewal and reverse proxy. Takes effect immediately after save.")
 o.rmempty = false
 
-o = s:option(Flag, "ipv6_listen", "反向代理监听 IPv6")
-o.description = "开启后，Nginx 反向代理将同时监听 IPv4 和 IPv6 地址（listen [::]:port）。"
+o = s:option(Flag, "ipv6_listen", translate("Reverse proxy listen on IPv6"))
+o.description = translate("When enabled, Nginx reverse proxy also listens on IPv6 (listen [::]:port).")
 o.rmempty = false
 o.default = "0"
 

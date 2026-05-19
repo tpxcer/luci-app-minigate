@@ -4,9 +4,6 @@
 		"order": 60,
 		"action": {
 			"type": "firstchild"
-		},
-		"depends": {
-			"acl": [ "luci-app-minigate" ]
 		}
 	}
 }

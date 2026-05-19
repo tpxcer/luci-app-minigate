@@ -1,11 +1,543 @@
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8\n"
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+# ── controller / shared ───────────────────────────────────────────────────────
+
+msgid "Overview"
+msgstr "总览"
+
+msgid "Dynamic DNS"
+msgstr "动态 DNS"
+
+msgid "SSL Certificate"
+msgstr "SSL 证书"
+
+msgid "Reverse Proxy"
+msgstr "反向代理"
+
+msgid "Login Guard"
+msgstr "登录防护"
+
+msgid "Log"
+msgstr "日志"
+
+msgid "Installation successful"
+msgstr "安装成功"
+
+msgid "Installation failed"
+msgstr "安装失败"
+
+msgid "Certificate issued successfully"
+msgstr "签发成功！"
+
+msgid "Certificate issuance failed, check log"
+msgstr "签发失败，请查看日志"
+
+msgid "Invalid IP"
+msgstr "无效 IP"
+
+msgid "Unknown"
+msgstr "未知"
+
+# ── general.lua ───────────────────────────────────────────────────────────────
+
+msgid "MiniGate Gateway"
+msgstr "MiniGate 轻网关"
+
+msgid "Lightweight gateway management: DDNS (IPv4/IPv6 dual-stack), SSL certificate issuance, reverse proxy."
+msgstr "轻量级网关管理：动态域名解析（IPv4/IPv6 双栈）、SSL 证书签发、反向代理。"
+
+msgid "Service Status"
+msgstr "服务状态"
+
+msgid "Global Settings"
+msgstr "全局设置"
+
+msgid "Enable MiniGate"
+msgstr "启用 MiniGate"
+
+msgid "Master switch. Disabling stops DDNS cron, ACME renewal and reverse proxy. Takes effect immediately after save."
+msgstr "总开关。关闭后停止 DDNS 定时任务、ACME 续期和反向代理。保存后立即生效。"
+
+msgid "Reverse proxy listen on IPv6"
+msgstr "反向代理监听 IPv6"
+
+msgid "When enabled, Nginx reverse proxy also listens on IPv6 (listen [::]:port)."
+msgstr "开启后，Nginx 反向代理将同时监听 IPv4 和 IPv6 地址（listen [::]:port）。"
+
+# ── ddns.lua ──────────────────────────────────────────────────────────────────
+
+msgid "MiniGate - Dynamic DNS"
+msgstr "MiniGate - 动态 DNS"
+
+msgid "Supports multiple domains and IPv4/IPv6 dual-stack. Syncs immediately after save. Requires global switch to be enabled."
+msgstr "支持多域名、IPv4/IPv6 双栈。保存后立即同步。需先启用全局开关。"
+
+msgid "DDNS Records"
+msgstr "DDNS 记录"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Domain"
+msgstr "域名"
+
+msgid "API Token"
+msgstr "API 令牌"
+
+msgid "IP Version"
+msgstr "协议版本"
+
+msgid "IPv4 only (A record)"
+msgstr "仅 IPv4（A 记录）"
+
+msgid "IPv6 only (AAAA record)"
+msgstr "仅 IPv6（AAAA 记录）"
+
+msgid "Dual-stack (A + AAAA)"
+msgstr "双栈（A + AAAA）"
+
+msgid "Select which DNS record type to update. Dual-stack updates both A and AAAA records."
+msgstr "选择更新哪种 DNS 记录。双栈模式同时更新 A 和 AAAA 记录。"
+
+msgid "IP Source"
+msgstr "IP 来源"
+
+msgid "From network interface"
+msgstr "从网卡获取"
+
+msgid "From external URL"
+msgstr "从外部 URL 获取"
+
+msgid "IPv4 network interface"
+msgstr "IPv4 网络接口"
+
+msgid "IPv4 detection URL"
+msgstr "IPv4 获取地址"
+
+msgid "In NAT/proxy environments, bypasses proxy to get the real public IP."
+msgstr "旁路由/代理环境自动绕过代理直连获取真实公网 IP。"
+
+msgid "IPv6 network interface"
+msgstr "IPv6 网络接口"
+
+msgid "Interface used to obtain the IPv6 address (usually wan6)."
+msgstr "用于获取 IPv6 地址的接口（通常为 wan6）。"
+
+msgid "IPv6 detection URL"
+msgstr "IPv6 获取地址"
+
+msgid "Fetches address via IPv6-only connection."
+msgstr "仅通过 IPv6 连接获取地址。"
+
+msgid "Interval (seconds)"
+msgstr "间隔（秒）"
+
+msgid "Status"
+msgstr "运行状态"
+
+# ── acme.lua ──────────────────────────────────────────────────────────────────
+
+msgid "MiniGate - SSL Certificate"
+msgstr "MiniGate - SSL 证书"
+
+msgid "Automatic ACME (Let's Encrypt) certificate issuance. Domain and token are auto-linked from Dynamic DNS."
+msgstr "ACME（Let's Encrypt）自动签发。域名和令牌自动关联「动态 DNS」。"
+
+msgid "ACME Settings"
+msgstr "ACME 设置"
+
+msgid "Enable ACME"
+msgstr "启用 ACME"
+
+msgid "Account email"
+msgstr "账户邮箱"
+
+msgid "Optional."
+msgstr "可选。"
+
+msgid "Key type"
+msgstr "密钥类型"
+
+msgid "recommended"
+msgstr "推荐"
+
+msgid "Staging mode"
+msgstr "测试模式"
+
+msgid "Disable for production use."
+msgstr "正式使用请关闭。"
+
+msgid "Issued certificates"
+msgstr "已签发证书"
+
+msgid "acme.sh status"
+msgstr "acme.sh 状态"
+
+msgid "Actions"
+msgstr "操作"
+
+# ── proxy.lua ─────────────────────────────────────────────────────────────────
+
+msgid "MiniGate - Reverse Proxy"
+msgstr "MiniGate - 反向代理"
+
+msgid "Changes take effect automatically after save."
+msgstr "保存后自动生效。"
+
+msgid "Wildcard domains"
+msgstr "通配符域名"
+
+msgid "Configure listening port and HTTPS. Forwarding is controlled by subdomain rules."
+msgstr "配置监听端口和 HTTPS，具体转发由「子域名」控制。"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "Enabled"
+msgstr "✓ 启用"
+
+msgid "Disabled"
+msgstr "✗ 禁用"
+
+msgid "Select"
+msgstr "请选择"
+
+msgid "Listen port"
+msgstr "监听端口"
+
+msgid "Subdomain rules"
+msgstr "子域名规则"
+
+msgid "Parent domain"
+msgstr "主域名"
+
+msgid "Prefix"
+msgstr "前缀"
+
+msgid "Target address"
+msgstr "目标地址"
+
+msgid "Port"
+msgstr "端口"
+
+msgid "Resolved domain"
+msgstr "实际域名"
+
+msgid "Proxy rules"
+msgstr "代理规则"
+
+msgid "Reverse proxy for non-wildcard domains."
+msgstr "非通配符域名的反向代理。"
+
+msgid "Target port"
+msgstr "目标端口"
+
+# ── login_guard.lua ───────────────────────────────────────────────────────────
+
+msgid "Monitors SSH (dropbear) and LuCI login failures and auto-bans source IPs on threshold."
+msgstr "监控 SSH（dropbear）和 LuCI 网页登录失败，达到阈值自动封禁源 IP。"
+
+msgid "Intended for SSH ports exposed to the internet. LAN private IPs are always exempt."
+msgstr "适用于 SSH 端口被映射到公网、防爆破。LAN 私有 IP 自动豁免。"
+
+msgid "Live Status"
+msgstr "实时状态"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "Enable Login Guard"
+msgstr "启用登录防护"
+
+msgid "When enabled, SSH/LuCI login failures are monitored. LAN IPs are never banned."
+msgstr "开启后将自动监控 SSH/LuCI 失败登录。LAN IP 永远不会被封禁。"
+
+msgid "Failure threshold"
+msgstr "失败次数阈值"
+
+msgid "Number of failures within the window that triggers a ban."
+msgstr "在「失败窗口」时间内累积达到此次数则封禁。"
+
+msgid "Failure window (seconds)"
+msgstr "失败窗口（秒）"
+
+msgid "Time window for counting failures. Counter resets if no failures occur within this period."
+msgstr "在多长时间内累计失败次数。超过此时间未再失败则计数清零。"
+
+msgid "5 minutes"
+msgstr "5 分钟"
+
+msgid "10 minutes"
+msgstr "10 分钟"
+
+msgid "30 minutes"
+msgstr "30 分钟"
+
+msgid "1 hour"
+msgstr "1 小时"
+
+msgid "24 hours"
+msgstr "24 小时"
+
+msgid "Ban duration"
+msgstr "封禁时长"
+
+msgid "6 hours"
+msgstr "6 小时"
+
+msgid "12 hours"
+msgstr "12 小时"
+
+msgid "1 week"
+msgstr "1 周"
+
+msgid "30 days"
+msgstr "30 天"
+
+msgid "Whitelist (extra)"
+msgstr "白名单（额外）"
+
+msgid "In addition to LAN private ranges (192.168.x, 10.x, 127.x, 172.16-31.x) which are always exempt, add these IPs/CIDRs."
+msgstr "除了 LAN 私有段（192.168.x、10.x、127.x、172.16-31.x）默认豁免外，再加这些 IP/CIDR。"
+
+msgid "Supports single IP (e.g. 1.2.3.4) or /8 /16 /24 /32 subnets."
+msgstr "支持单 IP（如 1.2.3.4）或 /8 /16 /24 /32 子网。"
+
+# ── menu / acl ────────────────────────────────────────────────────────────────
 
 msgid "MiniGate"
 msgstr "MiniGate 轻网关"
 
 msgid "Grant UCI access for luci-app-minigate"
 msgstr "授予 luci-app-minigate UCI 访问权限"
+
+# ── general.lua status card / table ───────────────────────────────────────────
+
+msgid "SSL/TLS Certificate"
+msgstr "SSL/TLS 证书"
+
+msgid "Access Log"
+msgstr "访问日志"
+
+msgid "Show"
+msgstr "显示"
+
+msgid "IP Address"
+msgstr "IP 地址"
+
+msgid "Location"
+msgstr "归属地"
+
+msgid "Last Visit"
+msgstr "最后访问"
+
+msgid "Count"
+msgstr "次数"
+
+msgid "Loading..."
+msgstr "加载中..."
+
+msgid "No access records yet."
+msgstr "暂无访问记录。"
+
+msgid "Online"
+msgstr "在线"
+
+msgid "Offline"
+msgstr "离线"
+
+msgid "Querying..."
+msgstr "查询中..."
+
+msgid "Not configured"
+msgstr "未配置"
+
+msgid "Expires: "
+msgstr "到期："
+
+msgid "Updated: "
+msgstr "已更新："
+
+msgid "Next: "
+msgstr "下次："
+
+msgid "Nginx running"
+msgstr "Nginx 运行中"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Valid"
+msgstr "有效"
+
+# ── ddns.lua status ────────────────────────────────────────────────────────────
+
+msgid "Partial"
+msgstr "部分同步"
+
+msgid "Error"
+msgstr "错误"
+
+msgid "Not synced"
+msgstr "未同步"
+
+msgid "Sync now"
+msgstr "立即同步"
+
+msgid "Syncing..."
+msgstr "同步中..."
+
+msgid "Failed"
+msgstr "失败"
+
+# ── acme.lua ───────────────────────────────────────────────────────────────────
+
+msgid "Expires"
+msgstr "到期时间"
+
+msgid "Path"
+msgstr "路径"
+
+msgid "No certificates found."
+msgstr "未找到证书。"
+
+msgid "Installed"
+msgstr "已安装"
+
+msgid "DNS plugin missing"
+msgstr "DNS 插件缺失"
+
+msgid "Not installed"
+msgstr "未安装"
+
+msgid "Download and install acme.sh"
+msgstr "下载并安装 acme.sh"
+
+msgid "Issue domain:"
+msgstr "签发域名："
+
+msgid "Configure Dynamic DNS first"
+msgstr "请先配置动态 DNS"
+
+msgid "Issue / Renew"
+msgstr "签发 / 续签"
+
+msgid "Processing..."
+msgstr "处理中..."
+
+msgid "Downloading and installing (about 30 seconds)..."
+msgstr "正在下载并安装（约 30 秒）..."
+
+msgid "Please select a domain"
+msgstr "请选择域名"
+
+msgid "Timeout"
+msgstr "超时"
+
+# ── login_guard.lua ────────────────────────────────────────────────────────────
+
+msgid "Currently Banned"
+msgstr "当前封禁"
+
+msgid "Counting Failures"
+msgstr "计数失败"
+
+msgid "Banned IP List"
+msgstr "封禁 IP 列表"
+
+msgid "Counting Failures (below threshold)"
+msgstr "失败计数（未达阈值）"
+
+msgid "Enter IP to ban"
+msgstr "输入要封禁的 IP"
+
+msgid "Ban"
+msgstr "封禁"
+
+msgid "Flush All"
+msgstr "清除全部"
+
+msgid "Failures"
+msgstr "失败次数"
+
+msgid "Last Seen"
+msgstr "最后出现"
+
+msgid "Since First Failure"
+msgstr "首次失败至今"
+
+msgid "Remaining"
+msgstr "剩余时间"
+
+msgid "Action"
+msgstr "操作"
+
+msgid "None"
+msgstr "无"
+
+msgid "No bans."
+msgstr "暂无封禁。"
+
+msgid "Not running"
+msgstr "未运行"
+
+msgid "Unban"
+msgstr "解封"
+
+msgid "Confirm unban"
+msgstr "确认解封"
+
+msgid "Please enter an IP"
+msgstr "请输入 IP 地址"
+
+msgid "Invalid IP format"
+msgstr "IP 格式无效"
+
+msgid "Confirm flush all bans? This cannot be undone."
+msgstr "确认清除所有封禁？此操作不可撤销。"
+
+msgid "Refresh failed, please retry."
+msgstr "刷新失败，请重试。"
+
+msgid "Render error: "
+msgstr "渲染错误："
+
+# ── log.htm ────────────────────────────────────────────────────────────────────
+
+msgid "All"
+msgstr "全部"
+
+msgid "Proxy"
+msgstr "代理"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Auto-refresh"
+msgstr "自动刷新"
+
+msgid "5s"
+msgstr "5秒"
+
+msgid "empty"
+msgstr "空"
+
+msgid "unable to read"
+msgstr "无法读取"
+
+# ── acme.lua extra ─────────────────────────────────────────────────────────────
+
+msgid "Issuing"
+msgstr "正在签发"
+
+msgid "e.g. my-site"
+msgstr "例：my-site"
+

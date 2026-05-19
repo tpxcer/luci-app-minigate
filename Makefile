@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI MiniGate (DDNS + ACME + Reverse Proxy + Login Guard)
-LUCI_DEPENDS:=+luci-base +luci-compat +nginx-ssl +openssl-util +wget +curl +jsonfilter +coreutils-stat +nftables
+LUCI_DEPENDS:=+luci-base +luci-compat +luci-mod-admin-full +nginx-ssl +openssl-util +wget +curl +jsonfilter +coreutils-stat +nftables
 LUCI_PKGARCH:=all
 
 PKG_NAME:=luci-app-minigate
@@ -31,9 +31,6 @@ define Package/$(PKG_NAME)/install
 
 	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
 	$(INSTALL_DATA) ./root/usr/share/rpcd/acl.d/luci-app-minigate.json $(1)/usr/share/rpcd/acl.d/
-
-	$(INSTALL_DIR) $(1)/usr/share/luci/menu.d
-	$(INSTALL_DATA) ./root/usr/share/luci/menu.d/luci-app-minigate.json $(1)/usr/share/luci/menu.d/
 
 	$(INSTALL_DIR) $(1)/usr/lib/minigate
 	$(INSTALL_BIN) ./root/usr/lib/minigate/ddns.sh $(1)/usr/lib/minigate/

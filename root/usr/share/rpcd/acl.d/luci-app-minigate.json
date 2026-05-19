@@ -1,0 +1,24 @@
+{
+	"luci-app-minigate": {
+		"description": "Grant UCI access for luci-app-minigate",
+		"read": {
+			"ubus": {
+				"session": [ "access", "login" ]
+			},
+			"uci": [ "minigate" ],
+			"file": {
+				"/var/log/minigate-*.log": [ "read" ],
+				"/var/run/minigate-nginx.pid": [ "read" ],
+				"/var/run/minigate/login-guard/counters/*": [ "read" ],
+				"/etc/minigate/certs/*": [ "read" ],
+				"/etc/minigate/acme/data/acme.sh": [ "read" ],
+				"/etc/minigate/acme/data/dnsapi/dns_cf.sh": [ "read" ],
+				"/etc/crontabs/root": [ "read" ],
+				"/tmp/minigate-geo-cache/*": [ "read", "write" ]
+			}
+		},
+		"write": {
+			"uci": [ "minigate" ]
+		}
+	}
+}

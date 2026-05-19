@@ -1,0 +1,11 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "MiniGate"
+msgstr "MiniGate 轻网关"
+
+msgid "Grant UCI access for luci-app-minigate"
+msgstr "授予 luci-app-minigate UCI 访问权限"

@@ -6,6 +6,27 @@
 
 > OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.5-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
 
+## 项目定位
+
+MiniGate 面向需要自托管轻量网关能力的 OpenWrt / ImmortalWrt 用户，目标是在 LuCI 中集中完成域名解析、证书签发、反向代理和登录防护配置，减少在路由器上手动维护多组脚本、Nginx 配置和防火墙规则的成本。
+
+项目重点关注以下场景：
+
+- 家庭或小型办公网络中的自托管服务入口管理
+- IPv4 / IPv6 双栈 DDNS 与反向代理配置
+- Cloudflare DNS-01 自动签发和续期证书
+- 直接 IP 访问、未知 Host、暴力登录尝试等常见暴露面防护
+- OpenWrt / ImmortalWrt opkg、apk、源码安装和 SDK 编译兼容
+
+## 维护状态
+
+- 维护者：[@tpxcer](https://github.com/tpxcer)
+- 当前维护分支：`main`
+- 发布方式：GitHub Releases 提供源码包和 OpenWrt/ImmortalWrt 兼容安装包
+- 安全策略：见 [SECURITY.md](SECURITY.md)
+- 贡献说明：见 [CONTRIBUTING.md](CONTRIBUTING.md)
+- 许可证：MIT License
+
 ## 功能特性
 
 ### 🌐 DDNS (动态域名解析)
@@ -281,8 +302,11 @@ rm -f /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 
 ```
 luci-app-minigate/
+├── CONTRIBUTING.md                    # 贡献说明
+├── LICENSE                            # MIT 许可证
 ├── Makefile                           # OpenWrt 编译配置
 ├── README.md
+├── SECURITY.md                        # 安全报告策略
 ├── install.sh                         # 一键安装脚本（兼容 opkg/apk）
 ├── luasrc/
 │   ├── controller/minigate.lua        # LuCI 路由控制器

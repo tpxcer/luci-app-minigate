@@ -3,6 +3,18 @@ local sys=require"luci.sys"
 local fs=require"nixio.fs"
 local uc=require"luci.model.uci".cursor()
 
+local function esc(v)
+    v=tostring(v or "")
+    v=v:gsub("&","&amp;"):gsub("<","&lt;"):gsub(">","&gt;")
+    v=v:gsub('"',"&quot;"):gsub("'","&#39;")
+    return v
+end
+
+local function shellquote(v)
+    v=tostring(v or "")
+    return "'"..v:gsub("'","'\"'\"'").."'"
+end
+
 local dd={}
 uc:foreach("minigate","ddns",function(sec) if sec.domain and sec.domain~=""then dd[#dd+1]=sec.domain end end)
 
@@ -38,10 +50,10 @@ o.cfgvalue=function()
                 if fs.access(cert)then
                     found=true
                     local exp=""
-                    local f=io.popen("openssl x509 -in '"..cert.."' -noout -enddate 2>/dev/null")
+                    local f=io.popen("openssl x509 -in "..shellquote(cert).." -noout -enddate 2>/dev/null")
                     if f then local l=f:read("*l"); if l then exp=l:gsub("notAfter=","") end; f:close() end
                     local dn=entry:gsub("_wildcard_%.", "*.")
-                    h=h..'<tr class="tr"><td class="td"><strong>'..dn..'</strong></td><td class="td">'..exp..'</td><td class="td"><code>'..fp..'/</code></td></tr>'
+                    h=h..'<tr class="tr"><td class="td"><strong>'..esc(dn)..'</strong></td><td class="td">'..esc(exp)..'</td><td class="td"><code>'..esc(fp)..'/</code></td></tr>'
                 end
             end
         end
@@ -64,7 +76,7 @@ o.cfgvalue=function()
     local iu=luci.dispatcher.build_url("admin/services/minigate/acme_install")
     local su=luci.dispatcher.build_url("admin/services/minigate/acme_issue")
     local opts=""
-    for _,d in ipairs(dd)do opts=opts..'<option value="'..d..'">'..d..'</option>' end
+    for _,d in ipairs(dd)do opts=opts..'<option value="'..esc(d)..'">'..esc(d)..'</option>' end
     return[[
 <div style="margin-bottom:15px"><button class="cbi-button cbi-button-reload" id="bi" onclick="doI()" style="min-width:220px">下载并安装 acme.sh</button></div>
 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">

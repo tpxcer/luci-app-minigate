@@ -2,9 +2,9 @@
 
 一个类似 Lucky 的轻量级 OpenWrt 应用，提供四大核心功能：DDNS、SSL 证书、反向代理、登录防护。
 
-当前版本：**v1.3.5**
+当前版本：**v1.3.6**
 
-> OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.5-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
+> OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.6-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
 
 ## 项目定位
 
@@ -79,20 +79,20 @@ MiniGate 面向需要自托管轻量网关能力的 OpenWrt / ImmortalWrt 用户
 
 从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载：
 
-`luci-app-minigate_1.3.5-1_all.ipk`
+`luci-app-minigate_1.3.6-1_all.ipk`
 
 **通过 LuCI 界面安装：**
 1. 打开 LuCI → **系统** → **软件包**
 2. 点击 **上传软件包**
-3. 选择 `luci-app-minigate_1.3.5-1_all.ipk`，点击安装
+3. 选择 `luci-app-minigate_1.3.6-1_all.ipk`，点击安装
 
 **通过命令行安装：**
 
 ```bash
 cd /tmp
-wget -O luci-app-minigate_1.3.5-1_all.ipk https://github.com/tpxcer/luci-app-minigate/releases/download/v1.3.5/luci-app-minigate_1.3.5-1_all.ipk
+wget -O luci-app-minigate_1.3.6-1_all.ipk https://github.com/tpxcer/luci-app-minigate/releases/download/v1.3.6/luci-app-minigate_1.3.6-1_all.ipk
 opkg update
-opkg install /tmp/luci-app-minigate_1.3.5-1_all.ipk
+opkg install /tmp/luci-app-minigate_1.3.6-1_all.ipk
 rm -f /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 /etc/init.d/uhttpd restart
 /etc/init.d/minigate restart
@@ -111,7 +111,7 @@ Release 用的 `.ipk` 请用仓库脚本生成，避免生成 Debian 风格 ar �
 脚本会输出：
 
 ```text
-dist/luci-app-minigate_1.3.5-1_all.ipk
+dist/luci-app-minigate_1.3.6-1_all.ipk
 ```
 
 该文件外层是 OpenWrt/ImmortalWrt 24.10 兼容的 `tar.gz`，内部成员顺序为 `debian-binary`、`control.tar.gz`、`data.tar.gz`。
@@ -122,15 +122,15 @@ dist/luci-app-minigate_1.3.5-1_all.ipk
 
 ```bash
 # 1. 下载源码包到电脑，然后上传到路由器
-scp luci-app-minigate-v1.3.5-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.6-src.tar.gz root@192.168.1.1:/tmp/
 
 # 2. SSH 到路由器
 ssh root@192.168.1.1
 
 # 3. 解压并安装
 cd /tmp
-tar xzf luci-app-minigate-v1.3.5-src.tar.gz
-cd luci-app-minigate-v1.3.5
+tar xzf luci-app-minigate-v1.3.6-src.tar.gz
+cd luci-app-minigate-v1.3.6
 sh install.sh
 
 # 4. 启动服务
@@ -161,10 +161,10 @@ make package/luci-app-minigate/compile V=s
 ### 源码升级（通用）
 
 ```bash
-scp luci-app-minigate-v1.3.5-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.6-src.tar.gz root@192.168.1.1:/tmp/
 ssh root@192.168.1.1
-cd /tmp && tar xzf luci-app-minigate-v1.3.5-src.tar.gz
-cd luci-app-minigate-v1.3.5
+cd /tmp && tar xzf luci-app-minigate-v1.3.6-src.tar.gz
+cd luci-app-minigate-v1.3.6
 sh install.sh
 /etc/init.d/minigate restart
 ```
@@ -172,7 +172,7 @@ sh install.sh
 ### IPK 升级
 
 ```bash
-opkg install --force-reinstall /tmp/luci-app-minigate_1.3.5-1_all.ipk
+opkg install --force-reinstall /tmp/luci-app-minigate_1.3.6-1_all.ipk
 rm -f /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 /etc/init.d/minigate restart
 ```
@@ -339,6 +339,12 @@ luci-app-minigate/
 - `nftables` - 登录防护用（OpenWrt 22.03+ / ImmortalWrt 默认已装）
 
 ## 更新日志
+
+### v1.3.6
+- 修复 ACME 重复签发/续期失败时，即使本地已有有效证书仍把 SSL/TLS 状态误标为 `error` 的问题
+- ACME 现在会在失败但已有证书未过期时保留 `ok` 状态，并记录最近错误，避免总览页误报证书失效
+- 修复 LuCI 手动签发证书、手动同步 DDNS 时命令参数未做安全引用的问题
+- 对总览页、证书页、登录防护页中的域名、证书、访问记录、归属地等动态文本做 HTML 转义
 
 ### v1.3.5
 - 修复同一监听端口下未知 Host / 任意子域名前缀会落到第一个反代站点的问题；现在会生成 `default_server` 兜底规则并直接断开

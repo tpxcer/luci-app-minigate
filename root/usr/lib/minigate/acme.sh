@@ -8,6 +8,36 @@ log() { echo "$(date '+%Y-%m-%d %H:%M:%S') [ACME] $*" >> "$LOGFILE"; }
 
 safe_dir() { echo "$1" | sed 's/\*/_wildcard_/g'; }
 
+cert_path_for_domain() {
+    echo "${CERT_DIR}/$(safe_dir "$1")/fullchain.pem"
+}
+
+cert_expiry() {
+    openssl x509 -in "$1" -noout -enddate 2>/dev/null | cut -d= -f2
+}
+
+cert_is_valid() {
+    local cert="$1"
+    [ -f "$cert" ] && openssl x509 -checkend 0 -noout -in "$cert" >/dev/null 2>&1
+}
+
+keep_existing_cert_ok() {
+    local domain="$1" reason="$2"
+    local cert="$(cert_path_for_domain "$domain")"
+    if cert_is_valid "$cert"; then
+        local expiry=$(cert_expiry "$cert")
+        log "失败: $reason；现有证书仍有效: $domain (过期: $expiry)"
+        uci -q set minigate.acme.status="ok"
+        uci -q set minigate.acme.last_domain="$domain"
+        uci -q set minigate.acme.cert_expiry="$expiry"
+        uci -q set minigate.acme.last_error="$reason"
+        uci commit minigate
+        [ -f /usr/lib/minigate/proxy.sh ] && /bin/sh /usr/lib/minigate/proxy.sh reload 2>/dev/null
+        return 0
+    fi
+    return 1
+}
+
 find_token_for_domain() {
     local target="$1"
     local sections=$(uci -q show minigate | grep '=ddns$' | cut -d. -f2 | cut -d= -f1)
@@ -77,9 +107,13 @@ do_issue() {
     local zone_id=$(echo "$ti" | cut -d'|' -f2)
     [ -z "$token" ] && { log "无API令牌"; uci -q set minigate.acme.status="error"; uci commit minigate; return 1; }
 
-    do_install || return 1
     local safe=$(safe_dir "$domain")
     mkdir -p "${CERT_DIR}/${safe}"
+    if ! do_install; then
+        keep_existing_cert_ok "$domain" "acme.sh 安装失败" && return 0
+        uci -q set minigate.acme.status="error"; uci commit minigate
+        return 1
+    fi
     export CF_Token="$token"
     [ -n "$zone_id" ] && export CF_Zone_ID="$zone_id"
 
@@ -98,12 +132,13 @@ do_issue() {
     local ret=$?
 
     if [ $ret -eq 0 ] && [ -f "${CERT_DIR}/${safe}/fullchain.pem" ]; then
-        local expiry=$(openssl x509 -in "${CERT_DIR}/${safe}/fullchain.pem" -noout -enddate 2>/dev/null | cut -d= -f2)
+        local expiry=$(cert_expiry "${CERT_DIR}/${safe}/fullchain.pem")
         log "成功: $domain (过期: $expiry)"
         uci -q set minigate.acme.status="ok"
         uci -q set minigate.acme.last_domain="$domain"
         uci -q set minigate.acme.last_issue="$(date '+%Y-%m-%d %H:%M:%S')"
         uci -q set minigate.acme.cert_expiry="$expiry"
+        uci -q delete minigate.acme.last_error
         uci commit minigate
         if echo "$domain" | grep -q '^\*\.'; then
             local base=$(echo "$domain" | sed 's/^\*\.//')
@@ -112,7 +147,8 @@ do_issue() {
         [ -f /usr/lib/minigate/proxy.sh ] && /bin/sh /usr/lib/minigate/proxy.sh reload 2>/dev/null
         return 0
     else
-        log "失败 (exit=$ret)"; uci -q set minigate.acme.status="error"; uci commit minigate; return 1
+        keep_existing_cert_ok "$domain" "签发失败 (exit=$ret)" && return 0
+        log "失败 (exit=$ret)"; uci -q set minigate.acme.status="error"; uci -q set minigate.acme.last_error="签发失败 (exit=$ret)"; uci commit minigate; return 1
     fi
 }
 

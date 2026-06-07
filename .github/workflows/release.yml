@@ -56,8 +56,10 @@ jobs:
           MiniGate v${VERSION}-${RELEASE}
 
           更新内容：
-          - 登录防护页面保存设置时，改为执行 MiniGate 轻量重载，而不是完整重启。
-          - 修复通过 MiniGate 反向代理访问 LuCI 时，保存登录防护设置后当前网页连接被反代 nginx 断开，导致浏览器显示“无法访问此网站”的问题。
+          - 修复 ACME 重复签发/续期失败时，即使已有有效证书仍把 SSL/TLS 状态误标为 error 的问题。
+          - ACME 失败但现有证书未过期时，会保留 ok 状态并记录最近错误，避免总览页误报证书失效。
+          - 修复 LuCI 手动签发证书、手动同步 DDNS 时命令参数未做安全引用的问题。
+          - 对总览页、证书页、登录防护页中的域名、证书、访问记录、归属地等动态文本做 HTML 转义。
 
           说明：
           - 旧版 Release 附件不会自动变化，请下载当前版本的 luci-app-minigate_${VERSION}-${RELEASE}_all.ipk。

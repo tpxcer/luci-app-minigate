@@ -1,5 +1,10 @@
 module("luci.controller.minigate", package.seeall)
 
+local function shellquote(value)
+    value = tostring(value or "")
+    return "'" .. value:gsub("'", "'\"'\"'") .. "'"
+end
+
 function index()
     entry({"admin","services","minigate"}, alias("admin","services","minigate","general"), "MiniGate", 60).dependent=false
     entry({"admin","services","minigate","general"}, cbi("minigate/general"), "总览", 10)
@@ -100,7 +105,8 @@ function action_status()
             status=uci:get("minigate","acme","status")or"unknown",
             last_domain=uci:get("minigate","acme","last_domain")or"",
             last_issue=uci:get("minigate","acme","last_issue")or"",
-            cert_expiry=uci:get("minigate","acme","cert_expiry")or""
+            cert_expiry=uci:get("minigate","acme","cert_expiry")or"",
+            last_error=uci:get("minigate","acme","last_error")or""
         }
     })
 end
@@ -120,15 +126,17 @@ end
 
 function action_acme_issue()
     local sys=require"luci.sys"; local d=luci.http.formvalue("domain")or""
-    local cmd="/bin/sh /usr/lib/minigate/acme.sh issue"; if d~=""then cmd=cmd.." '"..d.."'"end
+    local cmd="/bin/sh /usr/lib/minigate/acme.sh issue"; if d~=""then cmd=cmd.." "..shellquote(d)end
     sys.call(cmd.." 2>&1")
     local uci=require"luci.model.uci".cursor(); local st=uci:get("minigate","acme","status")or"unknown"
-    luci.http.prepare_content("application/json"); luci.http.write_json({success=(st=="ok"),message=(st=="ok")and"签发成功！"or"签发失败，查看日志"})
+    local le=uci:get("minigate","acme","last_error")or""
+    local msg=(st=="ok" and le~="")and"现有证书有效；最近一次签发失败，已保留有效证书"or((st=="ok")and"签发成功！"or"签发失败，查看日志")
+    luci.http.prepare_content("application/json"); luci.http.write_json({success=(st=="ok"),message=msg})
 end
 
 function action_ddns_sync()
     local sys=require"luci.sys"; local sec=luci.http.formvalue("section")or""
-    if sec~=""then sys.call("/bin/sh /usr/lib/minigate/ddns.sh single '"..sec.."' 2>&1")
+    if sec~=""then sys.call("/bin/sh /usr/lib/minigate/ddns.sh single "..shellquote(sec).." 2>&1")
     else sys.call("/bin/sh /usr/lib/minigate/ddns.sh force 2>&1") end
     local uci=require"luci.model.uci".cursor()
     local st=sec~=""and(uci:get("minigate",sec,"status")or"unknown")or"done"

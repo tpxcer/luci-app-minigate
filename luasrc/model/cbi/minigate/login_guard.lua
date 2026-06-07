@@ -195,6 +195,12 @@ var _lgGeoPending={};
 var _lgBanLimit=5;
 var _lgWatchLimit=5;
 
+function lgEscHtml(s){
+    return String(s||'').replace(/[&<>"']/g,function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
+
 function lgQueryGeo(ip,cb){
     if(_lgGeoCache[ip]){cb(_lgGeoCache[ip]);return;}
     if(_lgGeoPending[ip]){
@@ -230,7 +236,7 @@ function lgQueryInitialWatchingGeo(){
         if(!ip){setTimeout(next,0);return;}
         lgQueryGeo(ip,function(loc){
             var ge=document.getElementById('lg-watch-geo-initial-'+idx);
-            if(ge)ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
+            if(ge)ge.innerHTML='<span style="font-size:11px">'+lgEscHtml(loc)+'</span>';
             setTimeout(next,150);
         });
     }
@@ -291,10 +297,10 @@ function lgRenderWatching(watching,threshold){
         var pct=Math.min(100,Math.round(count*100/threshold));
         var color=pct>=66?'#ff7b72':(pct>=33?'#ffb35c':'#aaa');
         h2+='<tr>';
-        h2+='<td><code class="lg-ip">'+ip+'</code></td>';
+        h2+='<td><code class="lg-ip">'+lgEscHtml(ip)+'</code></td>';
         h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">查询中...</span></td>';
         h2+='<td><span style="color:'+color+';font-weight:bold">'+count+' / '+threshold+'</span></td>';
-        h2+='<td>'+lastSeen+'</td>';
+        h2+='<td>'+lgEscHtml(lastSeen)+'</td>';
         h2+='<td>'+fmtDuration(age)+'</td>';
         h2+='</tr>';
     }
@@ -312,7 +318,7 @@ function lgRenderWatching(watching,threshold){
         }
         lgQueryGeo(row.ip,function(loc){
             var ge=document.getElementById('lg-watch-geo-'+idx);
-            if(ge) ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
+            if(ge) ge.innerHTML='<span style="font-size:11px">'+lgEscHtml(loc)+'</span>';
             setTimeout(nextWatchingGeo,150);
         });
     }
@@ -346,7 +352,7 @@ function lgApplyStatus(d){
             for(var i=0;i<d.banned.length;i++){
                 var b=d.banned[i];
                 h+='<tr>';
-                h+='<td><code class="lg-ip lg-ip-danger">'+b.ip+'</code></td>';
+                h+='<td><code class="lg-ip lg-ip-danger">'+lgEscHtml(b.ip)+'</code></td>';
                 h+='<td id="lg-geo-'+i+'"><span style="color:#999">查询中...</span></td>';
                 h+='<td>'+fmtDuration(b.remaining)+'</td>';
                 h+='<td><button class="lg-unban" onclick="lgUnban(\''+b.ip+'\',this)">解封</button></td>';
@@ -361,7 +367,7 @@ function lgApplyStatus(d){
                 var idx=qi; qi++;
                 lgQueryGeo(d.banned[idx].ip,function(loc){
                     var ge=document.getElementById('lg-geo-'+idx);
-                    if(ge) ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
+                    if(ge) ge.innerHTML='<span style="font-size:11px">'+lgEscHtml(loc)+'</span>';
                     setTimeout(next,150);
                 });
             })();
@@ -371,7 +377,7 @@ function lgApplyStatus(d){
         try{lgRenderWatching(d.watching,d.threshold);}
         catch(e){
             var wEl=document.getElementById('lg-watching-list');
-            if(wEl)wEl.innerHTML='<div class="lg-empty">渲染失败：'+e.message+'</div>';
+            if(wEl)wEl.innerHTML='<div class="lg-empty">渲染失败：'+lgEscHtml(e.message)+'</div>';
         }
 
 }

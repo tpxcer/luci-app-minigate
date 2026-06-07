@@ -112,6 +112,12 @@ var _geoPending={};
 var _visitorLimit=localStorage.getItem('mgVisitorLimit')||'5';
 if(_visitorLimit!='5'&&_visitorLimit!='20'&&_visitorLimit!='50')_visitorLimit='5';
 
+function escHtml(s){
+    return String(s||'').replace(/[&<>"']/g,function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
+
 function fmtT(iso){
     if(!iso)return'--';
     var m=iso.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
@@ -154,11 +160,11 @@ function loadVisitors(){
             var stxt=v.online?'<span style="color:#72d987">在线</span>':'<span style="color:#a6a6a6">离线</span>';
             h+='<tr>';
             h+='<td><span class="mg-status">'+dot+stxt+'</span></td>';
-            h+='<td><code class="mg-ip">'+v.ip+'</code></td>';
+            h+='<td><code class="mg-ip">'+escHtml(v.ip)+'</code></td>';
             h+='<td id="geo-'+i+'"><span style="color:#999">查询中...</span></td>';
-            h+='<td style="white-space:nowrap">'+fmtT(v.last_time)+'</td>';
-            h+='<td>'+v.domain+'</td>';
-            h+='<td>'+v.count+'</td>';
+            h+='<td style="white-space:nowrap">'+escHtml(fmtT(v.last_time))+'</td>';
+            h+='<td>'+escHtml(v.domain)+'</td>';
+            h+='<td>'+escHtml(v.count)+'</td>';
             h+='</tr>';
         }
         h+='</tbody></table>';
@@ -170,7 +176,7 @@ function loadVisitors(){
             var idx=qi;qi++;
             queryGeo(d.visitors[idx].ip,function(loc){
                 var ge=document.getElementById('geo-'+idx);
-                if(ge)ge.innerHTML='<span style="font-size:11px">'+loc+'</span>';
+                if(ge)ge.innerHTML='<span style="font-size:11px">'+escHtml(loc)+'</span>';
                 setTimeout(nextGeo,150);
             });
         }
@@ -211,13 +217,13 @@ if(sm){
 if(e.last_update)info+='\u66f4\u65b0: '+e.last_update+'\n';
 if(e.next_sync)info+='\u4e0b\u6b21: '+e.next_sync;
 if(d.ddns_list.length>1)info+='\n(+'+(d.ddns_list.length-1)+' \u6761\u8bb0\u5f55)';
-d2.innerHTML=info.replace(/\n/g,'<br>');
+d2.innerHTML=escHtml(info).replace(/\n/g,'<br>');
 }else{d1.innerHTML='<span style="color:#999">\u672a\u914d\u7f6e</span>';d2.textContent='';card.style.setProperty('--accent','#777');}
 
 var a1=document.getElementById('mg-a1'),a2=document.getElementById('mg-a2');
 if(d.acme&&d.acme.enabled=='1'){
-a1.innerHTML=d.acme.status=='ok'?'<span style="color:#2196f3">\u2713 \u6709\u6548</span>':'<span style="color:#f44336">'+d.acme.status+'</span>';
-a2.innerHTML=(d.acme.last_domain||'')+(d.acme.cert_expiry?'<br>\u8fc7\u671f: '+d.acme.cert_expiry:'');
+a1.innerHTML=d.acme.status=='ok'?'<span style="color:#2196f3">\u2713 \u6709\u6548</span>':'<span style="color:#f44336">'+escHtml(d.acme.status)+'</span>';
+a2.innerHTML=escHtml(d.acme.last_domain||'')+(d.acme.cert_expiry?'<br>\u8fc7\u671f: '+escHtml(d.acme.cert_expiry):'');
 }else{a1.innerHTML='<span style="color:#999">\u672a\u542f\u7528</span>';a2.textContent='';}
 
 var p1=document.getElementById('mg-p1'),p2=document.getElementById('mg-p2');
@@ -228,7 +234,7 @@ for(var i=0;i<d.proxy_rules.length;i++){
 var r=d.proxy_rules[i];
 var url=r.scheme+'://'+r.domain+(r.listen_port!='443'&&r.listen_port!='80'?':'+r.listen_port:'');
 var v6tag=r.ipv6_listen=='1'?' <span style="color:#2196f3;font-size:10px">[IPv6]</span>':'';
-pinfo+='<div><span class="mg-link">'+url+'</span>'+v6tag+' \u2192 '+r.target+'</div>';
+pinfo+='<div><span class="mg-link">'+escHtml(url)+'</span>'+v6tag+' \u2192 '+escHtml(r.target)+'</div>';
 }}else if(d.proxy_running){pinfo='Nginx \u8fd0\u884c\u4e2d';}
 p2.innerHTML=pinfo;
 });

@@ -341,7 +341,7 @@ luci-app-minigate/
 ## 更新日志
 
 ### v1.3.7
-- DDNS 同步会覆盖 Cloudflare 中全部同名同类型 A / AAAA 记录，避免旧 IP 继续参与解析
+- DDNS 同步会保留一条匹配当前 IP 的 A / AAAA 记录，并删除其余同名同类型重复记录，避免旧 IP 继续参与解析
 - Cloudflare 记录查询失败时不再误判为记录不存在，避免异常新建重复 DNS 记录
 
 ### v1.3.6

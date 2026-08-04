@@ -77,20 +77,28 @@ cf_update() {
     local zone_id="$1" token="$2" domain="$3" ip="$4" record_type="$5"
     # record_type: A 或 AAAA
     [ -z "$record_type" ] && record_type="A"
-    local resp rid
+    local resp rids rid result
     resp=$(curl -s --connect-timeout 10 -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
         "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records?type=${record_type}&name=${domain}" 2>/dev/null)
-    rid=$(echo "$resp" | jsonfilter -e '$.result[0].id' 2>/dev/null)
-    if [ -n "$rid" ]; then
-        resp=$(curl -s --connect-timeout 10 -X PUT -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
-            -d "{\"type\":\"$record_type\",\"name\":\"$domain\",\"content\":\"$ip\",\"ttl\":120,\"proxied\":false}" \
-            "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records/${rid}" 2>/dev/null)
+    result=$(echo "$resp" | jsonfilter -e '$.success' 2>/dev/null)
+    [ "$result" = "true" ] || { echo "false"; return 1; }
+
+    rids=$(echo "$resp" | jsonfilter -e '$.result[*].id' 2>/dev/null)
+    if [ -n "$rids" ]; then
+        for rid in $rids; do
+            resp=$(curl -s --connect-timeout 10 -X PUT -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+                -d "{\"type\":\"$record_type\",\"name\":\"$domain\",\"content\":\"$ip\",\"ttl\":120,\"proxied\":false}" \
+                "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records/${rid}" 2>/dev/null)
+            result=$(echo "$resp" | jsonfilter -e '$.success' 2>/dev/null)
+            [ "$result" = "true" ] || { echo "false"; return 1; }
+        done
+        echo "true"
     else
         resp=$(curl -s --connect-timeout 10 -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
             -d "{\"type\":\"$record_type\",\"name\":\"$domain\",\"content\":\"$ip\",\"ttl\":120,\"proxied\":false}" \
             "https://api.cloudflare.com/client/v4/zones/${zone_id}/dns_records" 2>/dev/null)
+        echo "$resp" | jsonfilter -e '$.success' 2>/dev/null
     fi
-    echo "$resp" | jsonfilter -e '$.success' 2>/dev/null
 }
 
 calc_next() {

@@ -56,10 +56,8 @@ jobs:
           MiniGate v${VERSION}-${RELEASE}
 
           更新内容：
-          - 修复 ACME 重复签发/续期失败时，即使已有有效证书仍把 SSL/TLS 状态误标为 error 的问题。
-          - ACME 失败但现有证书未过期时，会保留 ok 状态并记录最近错误，避免总览页误报证书失效。
-          - 修复 LuCI 手动签发证书、手动同步 DDNS 时命令参数未做安全引用的问题。
-          - 对总览页、证书页、登录防护页中的域名、证书、访问记录、归属地等动态文本做 HTML 转义。
+          - DDNS 同步会保留一条匹配当前 IP 的 A / AAAA 记录，并删除其余同名同类型重复记录，避免旧 IP 继续参与解析。
+          - Cloudflare 记录查询失败时不再误判为记录不存在，避免异常新建重复 DNS 记录。
 
           说明：
           - 旧版 Release 附件不会自动变化，请下载当前版本的 luci-app-minigate_${VERSION}-${RELEASE}_all.ipk。

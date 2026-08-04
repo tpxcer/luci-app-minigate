@@ -33,6 +33,7 @@ MiniGate 面向需要自托管轻量网关能力的 OpenWrt / ImmortalWrt 用户
 - **Cloudflare** DNS API 支持
 - **IPv4 / IPv6 / 双栈** 模式，同时更新 A 和 AAAA 记录
 - 自动检测 WAN IP 变化并更新 DNS 记录
+- 同名同类型记录重复时，保留匹配当前 IP 的记录并清理其余旧记录，避免旧 IP 继续参与解析
 - 支持从网络接口或外部 URL 获取 IP
 - 可配置检查间隔和强制更新间隔
 - 一键手动触发更新

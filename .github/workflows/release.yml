@@ -56,8 +56,8 @@ jobs:
           MiniGate v${VERSION}-${RELEASE}
 
           更新内容：
-          - DDNS 同步会保留一条匹配当前 IP 的 A / AAAA 记录，并删除其余同名同类型重复记录，避免旧 IP 继续参与解析。
-          - Cloudflare 记录查询失败时不再误判为记录不存在，避免异常新建重复 DNS 记录。
+          - 调整 LuCI 深色模式配色，降低高饱和强调色和卡片边框的突兀感。
+          - 统一总览与登录防护页面的深色背景、文字和状态颜色，提升长时间查看时的舒适度。
 
           说明：
           - 旧版 Release 附件不会自动变化，请下载当前版本的 luci-app-minigate_${VERSION}-${RELEASE}_all.ipk。

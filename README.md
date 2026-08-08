@@ -2,9 +2,9 @@
 
 一个类似 Lucky 的轻量级 OpenWrt 应用，提供四大核心功能：DDNS、SSL 证书、反向代理、登录防护。
 
-当前版本：**v1.3.7**
+当前版本：**v1.3.8**
 
-> OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.7-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
+> OpenWrt 用户请从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载 `luci-app-minigate_1.3.8-1_all.ipk`。不要把 GitHub 自动生成的 `Source code (zip)` / `Source code (tar.gz)` 当安装包上传到 LuCI。
 
 ## 项目定位
 
@@ -80,20 +80,20 @@ MiniGate 面向需要自托管轻量网关能力的 OpenWrt / ImmortalWrt 用户
 
 从 [Releases](https://github.com/tpxcer/luci-app-minigate/releases/latest) 下载：
 
-`luci-app-minigate_1.3.7-1_all.ipk`
+`luci-app-minigate_1.3.8-1_all.ipk`
 
 **通过 LuCI 界面安装：**
 1. 打开 LuCI → **系统** → **软件包**
 2. 点击 **上传软件包**
-3. 选择 `luci-app-minigate_1.3.7-1_all.ipk`，点击安装
+3. 选择 `luci-app-minigate_1.3.8-1_all.ipk`，点击安装
 
 **通过命令行安装：**
 
 ```bash
 cd /tmp
-wget -O luci-app-minigate_1.3.7-1_all.ipk https://github.com/tpxcer/luci-app-minigate/releases/download/v1.3.7/luci-app-minigate_1.3.7-1_all.ipk
+wget -O luci-app-minigate_1.3.8-1_all.ipk https://github.com/tpxcer/luci-app-minigate/releases/download/v1.3.8/luci-app-minigate_1.3.8-1_all.ipk
 opkg update
-opkg install /tmp/luci-app-minigate_1.3.7-1_all.ipk
+opkg install /tmp/luci-app-minigate_1.3.8-1_all.ipk
 rm -f /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 /etc/init.d/uhttpd restart
 /etc/init.d/minigate restart
@@ -112,7 +112,7 @@ Release 用的 `.ipk` 请用仓库脚本生成，避免生成 Debian 风格 ar �
 脚本会输出：
 
 ```text
-dist/luci-app-minigate_1.3.7-1_all.ipk
+dist/luci-app-minigate_1.3.8-1_all.ipk
 ```
 
 该文件外层是 OpenWrt/ImmortalWrt 24.10 兼容的 `tar.gz`，内部成员顺序为 `debian-binary`、`control.tar.gz`、`data.tar.gz`。
@@ -123,15 +123,15 @@ dist/luci-app-minigate_1.3.7-1_all.ipk
 
 ```bash
 # 1. 下载源码包到电脑，然后上传到路由器
-scp luci-app-minigate-v1.3.7-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.8-src.tar.gz root@192.168.1.1:/tmp/
 
 # 2. SSH 到路由器
 ssh root@192.168.1.1
 
 # 3. 解压并安装
 cd /tmp
-tar xzf luci-app-minigate-v1.3.7-src.tar.gz
-cd luci-app-minigate-v1.3.7
+tar xzf luci-app-minigate-v1.3.8-src.tar.gz
+cd luci-app-minigate-v1.3.8
 sh install.sh
 
 # 4. 启动服务
@@ -162,10 +162,10 @@ make package/luci-app-minigate/compile V=s
 ### 源码升级（通用）
 
 ```bash
-scp luci-app-minigate-v1.3.7-src.tar.gz root@192.168.1.1:/tmp/
+scp luci-app-minigate-v1.3.8-src.tar.gz root@192.168.1.1:/tmp/
 ssh root@192.168.1.1
-cd /tmp && tar xzf luci-app-minigate-v1.3.7-src.tar.gz
-cd luci-app-minigate-v1.3.7
+cd /tmp && tar xzf luci-app-minigate-v1.3.8-src.tar.gz
+cd luci-app-minigate-v1.3.8
 sh install.sh
 /etc/init.d/minigate restart
 ```
@@ -173,7 +173,7 @@ sh install.sh
 ### IPK 升级
 
 ```bash
-opkg install --force-reinstall /tmp/luci-app-minigate_1.3.7-1_all.ipk
+opkg install --force-reinstall /tmp/luci-app-minigate_1.3.8-1_all.ipk
 rm -f /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 /etc/init.d/minigate restart
 ```
@@ -340,6 +340,10 @@ luci-app-minigate/
 - `nftables` - 登录防护用（OpenWrt 22.03+ / ImmortalWrt 默认已装）
 
 ## 更新日志
+
+### v1.3.8
+- 调整 LuCI 深色模式配色，降低高饱和强调色和卡片边框的突兀感
+- 统一总览与登录防护页面的深色背景、文字和状态颜色
 
 ### v1.3.7
 - DDNS 同步会保留一条匹配当前 IP 的 A / AAAA 记录，并删除其余同名同类型重复记录，避免旧 IP 继续参与解析

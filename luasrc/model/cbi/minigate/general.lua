@@ -26,19 +26,19 @@ o.cfgvalue = function()
     local gu = luci.dispatcher.build_url("admin/services/minigate/geo_lookup")
     return [[
 <style>
-.mg-wrap{display:flex;flex-direction:column;gap:16px}
+.mg-wrap{display:flex;flex-direction:column;gap:16px;--mg-success:#2f9e44;--mg-info:#1971c2;--mg-warning:#f08c00;--mg-danger:#e03131;--mg-muted:#6b7280;--mg-link:#15803d;--mg-accent:#7c3aed}
 .mg-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .mg-card{position:relative;min-height:154px;border-radius:8px;padding:18px 18px 16px;background:#fff;border:1px solid #d7dce3;box-shadow:0 10px 24px rgba(15,23,42,.08);overflow:hidden}
 .mg-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,#777)}
 .mg-card-title{font-size:12px;color:#5f6b7a;margin-bottom:12px}
 .mg-card-state{font-size:18px;font-weight:700;margin-bottom:14px;line-height:1.25}
 .mg-card-body{font-size:12px;color:#2f3a47;line-height:1.9;word-break:break-word}
-.mg-card-body a,.mg-link{color:#15803d;text-decoration:none}
+.mg-card-body a,.mg-link{color:var(--mg-link);text-decoration:none}
 .mg-card-body a:hover,.mg-link:hover{text-decoration:underline}
 .mg-panel{border-radius:8px;background:#fff;border:1px solid #d7dce3;box-shadow:0 10px 24px rgba(15,23,42,.08);overflow:hidden}
 .mg-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid #d7dce3}
 .mg-panel-title{font-size:13px;font-weight:700;color:#1f2937}
-.mg-count{color:#7c3aed;font-weight:600}
+.mg-count{color:var(--mg-accent);font-weight:600}
 .mg-limit-label{display:flex;align-items:center;gap:6px;font-size:12px;color:#5f6b7a;white-space:nowrap}
 .mg-select{height:28px;border-radius:6px;border:1px solid #c8d0dc;background:#fff;color:#1f2937;padding:0 8px;font-size:12px}
 .mg-table-wrap{overflow-x:auto}
@@ -49,43 +49,42 @@ o.cfgvalue = function()
 .mg-table tr:hover td{background:#eef4ff}
 .mg-status{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .mg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#777}
-.mg-dot.on{background:#4caf50;box-shadow:0 0 0 3px rgba(76,175,80,.14)}
+.mg-dot.on{background:var(--mg-success);box-shadow:0 0 0 3px rgba(47,158,68,.14)}
 .mg-ip{display:inline-block;border-radius:6px;background:#e8edf6;color:#1f2937;padding:2px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
 .mg-empty{padding:18px 16px;color:#667085;font-size:12px}
 @media(prefers-color-scheme:dark){
-.mg-card{background:#262626;border-color:rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.18)}
-.mg-card-title{color:#a8a8a8}
-.mg-card-body{color:#c8c8c8}
-.mg-card-body a,.mg-link{color:#56d87a}
-.mg-panel{background:#262626;border-color:rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.16)}
-.mg-panel-head{border-bottom-color:rgba(255,255,255,.08)}
-.mg-panel-title{color:#ededed}
-.mg-count{color:#c16cff}
-.mg-limit-label{color:#bdbdbd}
-.mg-select{border-color:rgba(255,255,255,.14);background:#1d1d1d;color:#eee}
-.mg-table th{color:#9d9d9d;border-bottom-color:rgba(255,255,255,.08);background:#202020}
-.mg-table td{color:#dddddd;border-bottom-color:rgba(255,255,255,.06);background:transparent}
-.mg-table tr:nth-child(even) td{background:#262626}
-.mg-table tr:hover td{background:#2e2e2e}
-.mg-ip{background:#383b45;color:#f2f4ff}
-.mg-empty{color:#aaa}
+.mg-wrap{--mg-success:#78c98d;--mg-info:#7db7df;--mg-warning:#d7a64a;--mg-danger:#e58a84;--mg-muted:#9aa7b3;--mg-link:#7bcf91;--mg-accent:#b69af4}
+.mg-card{background:#171e26;border-color:rgba(148,163,184,.18);box-shadow:none}
+.mg-card-title{color:#9aa7b3}
+.mg-card-body{color:#c8d0d9}
+.mg-panel{background:#171e26;border-color:rgba(148,163,184,.18);box-shadow:none}
+.mg-panel-head{border-bottom-color:rgba(148,163,184,.16)}
+.mg-panel-title{color:#e5eaf0}
+.mg-limit-label{color:#aab4bf}
+.mg-select{border-color:rgba(148,163,184,.26);background:#111820;color:#e5eaf0}
+.mg-table th{color:#9aa7b3;border-bottom-color:rgba(148,163,184,.16);background:#131a22}
+.mg-table td{color:#d5dbe3;border-bottom-color:rgba(148,163,184,.12);background:transparent}
+.mg-table tr:nth-child(even) td{background:#19212a}
+.mg-table tr:hover td{background:#202a34}
+.mg-ip{background:#253142;color:#e7edf5}
+.mg-empty{color:#9aa7b3}
 }
 @media(max-width:900px){.mg-status-grid{grid-template-columns:1fr}.mg-card{min-height:auto}}
 </style>
 
 <div class="mg-wrap">
 <div id="mg" class="mg-status-grid">
-<div id="mg-ddns-card" class="mg-card" style="--accent:#4caf50">
+<div id="mg-ddns-card" class="mg-card" style="--accent:var(--mg-success)">
 <div class="mg-card-title">动态 DNS</div>
 <div id="mg-d1" class="mg-card-state">--</div>
 <div id="mg-d2" class="mg-card-body"></div>
 </div>
-<div id="mg-cert-card" class="mg-card" style="--accent:#2196f3">
+<div id="mg-cert-card" class="mg-card" style="--accent:var(--mg-info)">
 <div class="mg-card-title">SSL/TLS 证书</div>
 <div id="mg-a1" class="mg-card-state">--</div>
 <div id="mg-a2" class="mg-card-body"></div>
 </div>
-<div id="mg-proxy-card" class="mg-card" style="--accent:#ff9800">
+<div id="mg-proxy-card" class="mg-card" style="--accent:var(--mg-warning)">
 <div class="mg-card-title">反向代理</div>
 <div id="mg-p1" class="mg-card-state">--</div>
 <div id="mg-p2" class="mg-card-body"></div>
@@ -116,6 +115,12 @@ function escHtml(s){
     return String(s||'').replace(/[&<>"']/g,function(c){
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
+}
+
+function mgColor(name){
+    var root=document.querySelector('.mg-wrap');
+    if(!root)return'#999';
+    return getComputedStyle(root).getPropertyValue('--mg-'+name).trim()||'#999';
 }
 
 function fmtT(iso){
@@ -157,11 +162,11 @@ function loadVisitors(){
             var dot=v.online
                 ?'<span class="mg-dot on" title="在线"></span>'
                 :'<span class="mg-dot" title="离线"></span>';
-            var stxt=v.online?'<span style="color:#72d987">在线</span>':'<span style="color:#a6a6a6">离线</span>';
+            var stxt=v.online?'<span style="color:'+mgColor('success')+'">在线</span>':'<span style="color:'+mgColor('muted')+'">离线</span>';
             h+='<tr>';
             h+='<td><span class="mg-status">'+dot+stxt+'</span></td>';
             h+='<td><code class="mg-ip">'+escHtml(v.ip)+'</code></td>';
-            h+='<td id="geo-'+i+'"><span style="color:#999">查询中...</span></td>';
+            h+='<td id="geo-'+i+'"><span style="color:'+mgColor('muted')+'">查询中...</span></td>';
             h+='<td style="white-space:nowrap">'+escHtml(fmtT(v.last_time))+'</td>';
             h+='<td>'+escHtml(v.domain)+'</td>';
             h+='<td>'+escHtml(v.count)+'</td>';
@@ -200,7 +205,7 @@ var d1=document.getElementById('mg-d1'),d2=document.getElementById('mg-d2');
 var card=document.getElementById('mg-ddns-card');
 if(d.ddns_list&&d.ddns_list.length>0){
 var e=d.ddns_list[0];
-var c=e.status=='ok'?'#4caf50':(e.status=='partial'?'#ff9800':(e.enabled=='1'?'#f44336':'#999'));
+var c=e.status=='ok'?mgColor('success'):(e.status=='partial'?mgColor('warning'):(e.enabled=='1'?mgColor('danger'):mgColor('muted')));
 var l=e.status=='ok'?'\u2713 \u8fd0\u884c\u4e2d':(e.status=='partial'?'\u26a0 \u90e8\u5206\u6210\u529f':(e.enabled=='1'?'\u26a0 \u5f02\u5e38':'\u672a\u542f\u7528'));
 card.style.setProperty('--accent',c);
 d1.innerHTML='<span style="color:'+c+'">'+l+'</span>';
@@ -218,22 +223,22 @@ if(e.last_update)info+='\u66f4\u65b0: '+e.last_update+'\n';
 if(e.next_sync)info+='\u4e0b\u6b21: '+e.next_sync;
 if(d.ddns_list.length>1)info+='\n(+'+(d.ddns_list.length-1)+' \u6761\u8bb0\u5f55)';
 d2.innerHTML=escHtml(info).replace(/\n/g,'<br>');
-}else{d1.innerHTML='<span style="color:#999">\u672a\u914d\u7f6e</span>';d2.textContent='';card.style.setProperty('--accent','#777');}
+}else{d1.innerHTML='<span style="color:'+mgColor('muted')+'">\u672a\u914d\u7f6e</span>';d2.textContent='';card.style.setProperty('--accent',mgColor('muted'));}
 
 var a1=document.getElementById('mg-a1'),a2=document.getElementById('mg-a2');
 if(d.acme&&d.acme.enabled=='1'){
-a1.innerHTML=d.acme.status=='ok'?'<span style="color:#2196f3">\u2713 \u6709\u6548</span>':'<span style="color:#f44336">'+escHtml(d.acme.status)+'</span>';
+a1.innerHTML=d.acme.status=='ok'?'<span style="color:'+mgColor('info')+'">\u2713 \u6709\u6548</span>':'<span style="color:'+mgColor('danger')+'">'+escHtml(d.acme.status)+'</span>';
 a2.innerHTML=escHtml(d.acme.last_domain||'')+(d.acme.cert_expiry?'<br>\u8fc7\u671f: '+escHtml(d.acme.cert_expiry):'');
-}else{a1.innerHTML='<span style="color:#999">\u672a\u542f\u7528</span>';a2.textContent='';}
+}else{a1.innerHTML='<span style="color:'+mgColor('muted')+'">\u672a\u542f\u7528</span>';a2.textContent='';}
 
 var p1=document.getElementById('mg-p1'),p2=document.getElementById('mg-p2');
-p1.innerHTML=d.proxy_running?'<span style="color:#ff9800">\u2713 \u8fd0\u884c\u4e2d</span>':'<span style="color:#999">\u5df2\u505c\u6b62</span>';
+p1.innerHTML=d.proxy_running?'<span style="color:'+mgColor('warning')+'">\u2713 \u8fd0\u884c\u4e2d</span>':'<span style="color:'+mgColor('muted')+'">\u5df2\u505c\u6b62</span>';
 var pinfo='';
 if(d.proxy_rules&&d.proxy_rules.length>0){
 for(var i=0;i<d.proxy_rules.length;i++){
 var r=d.proxy_rules[i];
 var url=r.scheme+'://'+r.domain+(r.listen_port!='443'&&r.listen_port!='80'?':'+r.listen_port:'');
-var v6tag=r.ipv6_listen=='1'?' <span style="color:#2196f3;font-size:10px">[IPv6]</span>':'';
+var v6tag=r.ipv6_listen=='1'?' <span style="color:'+mgColor('info')+';font-size:10px">[IPv6]</span>':'';
 pinfo+='<div><span class="mg-link">'+escHtml(url)+'</span>'+v6tag+' \u2192 '+escHtml(r.target)+'</div>';
 }}else if(d.proxy_running){pinfo='Nginx \u8fd0\u884c\u4e2d';}
 p2.innerHTML=pinfo;

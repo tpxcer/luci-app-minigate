@@ -74,7 +74,7 @@ o.cfgvalue = function()
         local style = (i > 5) and ' style="display:none"' or ''
         watching_rows[#watching_rows + 1] =
             '<tr class="lg-watch-row" data-ip="' .. esc(item.ip) .. '" data-index="' .. tostring(i) .. '"' .. style .. '><td><code class="lg-ip">' .. esc(item.ip) .. '</code></td>' ..
-            '<td id="lg-watch-geo-initial-' .. tostring(i) .. '"><span style="color:#999">查询中...</span></td>' ..
+            '<td id="lg-watch-geo-initial-' .. tostring(i) .. '"><span style="color:var(--lg-muted)">查询中...</span></td>' ..
             '<td><span style="font-weight:bold">' .. esc(item.count) .. ' / ' .. esc(threshold) .. '</span></td>' ..
             '<td>' .. esc(item.last_seen) .. '</td>' ..
             '<td>' .. esc(fmt_duration(item.age)) .. '</td></tr>'
@@ -90,7 +90,7 @@ o.cfgvalue = function()
 
     return [[
 <style>
-.lg-wrap{display:flex;flex-direction:column;gap:16px}
+.lg-wrap{display:flex;flex-direction:column;gap:16px;--lg-success:#2f9e44;--lg-warning:#f08c00;--lg-danger:#e03131;--lg-muted:#6b7280;--lg-primary:#5b55c8}
 .lg-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .lg-card{position:relative;min-height:118px;border-radius:8px;padding:18px;background:#fff;border:1px solid #d7dce3;box-shadow:0 10px 24px rgba(15,23,42,.08);overflow:hidden}
 .lg-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,#777)}
@@ -104,8 +104,8 @@ o.cfgvalue = function()
 .lg-select{height:30px;border-radius:6px;border:1px solid #c8d0dc;background:#fff;color:#1f2937;padding:0 8px;font-size:12px;box-sizing:border-box}
 .lg-limit-label{display:flex;align-items:center;gap:6px;color:#5f6b7a;font-size:12px;white-space:nowrap}
 .lg-btn{height:30px;border:0;border-radius:6px;padding:0 12px;font-size:12px;color:#fff;cursor:pointer}
-.lg-btn-primary{background:#5b55c8}
-.lg-btn-danger{background:#f08a24}
+.lg-btn-primary{background:var(--lg-primary)}
+.lg-btn-danger{background:var(--lg-warning)}
 .lg-table-wrap{overflow-x:auto}
 .lg-table{width:100%;border-collapse:collapse;min-width:720px}
 .lg-table th{padding:10px 12px;color:#5f6b7a;font-size:11px;font-weight:600;text-align:left;border-bottom:1px solid #d7dce3;background:#f6f8fb}
@@ -117,38 +117,39 @@ o.cfgvalue = function()
 .lg-empty{padding:18px 16px;color:#667085;font-size:12px}
 .lg-unban{height:26px;border:1px solid #c8d0dc;border-radius:6px;background:#fff;color:#1f2937;padding:0 10px;font-size:11px;cursor:pointer}
 @media(prefers-color-scheme:dark){
-.lg-card{background:#262626;border-color:rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.18)}
-.lg-card-title{color:#a8a8a8}
-.lg-panel{background:#262626;border-color:rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.16)}
-.lg-panel-head{border-bottom-color:rgba(255,255,255,.08)}
-.lg-panel-title{color:#ededed}
-.lg-input,.lg-select{border-color:rgba(255,255,255,.14);background:#1d1d1d;color:#eee}
-.lg-limit-label{color:#aaa}
-.lg-table th{color:#9d9d9d;border-bottom-color:rgba(255,255,255,.08);background:#202020}
-.lg-table td{color:#dddddd;border-bottom-color:rgba(255,255,255,.06);background:transparent}
-.lg-table tr:nth-child(even) td{background:#262626}
-.lg-table tr:hover td{background:#2e2e2e}
-.lg-ip{background:#383b45;color:#f2f4ff}
-.lg-ip-danger{background:#4a3030;color:#ffb8b8}
-.lg-empty{color:#aaa}
-.lg-unban{border-color:rgba(255,255,255,.16);background:#313131;color:#eee}
+.lg-wrap{--lg-success:#78c98d;--lg-warning:#d7a64a;--lg-danger:#e58a84;--lg-muted:#9aa7b3;--lg-primary:#8e8add}
+.lg-card{background:#171e26;border-color:rgba(148,163,184,.18);box-shadow:none}
+.lg-card-title{color:#9aa7b3}
+.lg-panel{background:#171e26;border-color:rgba(148,163,184,.18);box-shadow:none}
+.lg-panel-head{border-bottom-color:rgba(148,163,184,.16)}
+.lg-panel-title{color:#e5eaf0}
+.lg-input,.lg-select{border-color:rgba(148,163,184,.26);background:#111820;color:#e5eaf0}
+.lg-limit-label{color:#aab4bf}
+.lg-table th{color:#9aa7b3;border-bottom-color:rgba(148,163,184,.16);background:#131a22}
+.lg-table td{color:#d5dbe3;border-bottom-color:rgba(148,163,184,.12);background:transparent}
+.lg-table tr:nth-child(even) td{background:#19212a}
+.lg-table tr:hover td{background:#202a34}
+.lg-ip{background:#253142;color:#e7edf5}
+.lg-ip-danger{background:#42303a;color:#efb2b0}
+.lg-empty{color:#9aa7b3}
+.lg-unban{border-color:rgba(148,163,184,.28);background:#1c2530;color:#e5eaf0}
 }
 @media(max-width:900px){.lg-summary{grid-template-columns:1fr}.lg-card{min-height:auto}.lg-input{width:100%;min-width:0}.lg-tools{width:100%}}
 </style>
 
 <div class="lg-wrap">
 <div id="lg-summary" class="lg-summary">
-  <div class="lg-card" style="--accent:#4caf50">
+  <div class="lg-card" style="--accent:var(--lg-success)">
     <div class="lg-card-title">服务状态</div>
     <div id="lg-running" class="lg-card-value">--</div>
   </div>
-  <div class="lg-card" style="--accent:#f44336">
+  <div class="lg-card" style="--accent:var(--lg-danger)">
     <div class="lg-card-title">当前已封禁</div>
-    <div id="lg-banned-count" class="lg-card-value" style="color:#ff7b72">--</div>
+    <div id="lg-banned-count" class="lg-card-value" style="color:var(--lg-danger)">--</div>
   </div>
-  <div class="lg-card" style="--accent:#ff9800">
+  <div class="lg-card" style="--accent:var(--lg-warning)">
     <div class="lg-card-title">失败计数中</div>
-    <div id="lg-watching-count" class="lg-card-value" style="color:#ffb35c">--</div>
+    <div id="lg-watching-count" class="lg-card-value" style="color:var(--lg-warning)">--</div>
   </div>
 </div>
 
@@ -199,6 +200,12 @@ function lgEscHtml(s){
     return String(s||'').replace(/[&<>"']/g,function(c){
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
+}
+
+function lgColor(name){
+    var root=document.querySelector('.lg-wrap');
+    if(!root)return'#999';
+    return getComputedStyle(root).getPropertyValue('--lg-'+name).trim()||'#999';
 }
 
 function lgQueryGeo(ip,cb){
@@ -295,10 +302,10 @@ function lgRenderWatching(watching,threshold){
         var age=Number(w.age)||0;
         var lastSeen=w.last_seen||'--';
         var pct=Math.min(100,Math.round(count*100/threshold));
-        var color=pct>=66?'#ff7b72':(pct>=33?'#ffb35c':'#aaa');
+        var color=pct>=66?lgColor('danger'):(pct>=33?lgColor('warning'):lgColor('muted'));
         h2+='<tr>';
         h2+='<td><code class="lg-ip">'+lgEscHtml(ip)+'</code></td>';
-        h2+='<td id="lg-watch-geo-'+j+'"><span style="color:#999">查询中...</span></td>';
+        h2+='<td id="lg-watch-geo-'+j+'"><span style="color:'+lgColor('muted')+'">查询中...</span></td>';
         h2+='<td><span style="color:'+color+';font-weight:bold">'+count+' / '+threshold+'</span></td>';
         h2+='<td>'+lgEscHtml(lastSeen)+'</td>';
         h2+='<td>'+fmtDuration(age)+'</td>';
@@ -334,10 +341,10 @@ function lgApplyStatus(d){
         // 服务状态
         var rEl=document.getElementById('lg-running');
         if(d.enabled=='1'){
-            if(d.running) rEl.innerHTML='<span style="color:#4caf50">✓ 运行中</span>';
-            else rEl.innerHTML='<span style="color:#f44336">✗ 未运行</span>';
+            if(d.running) rEl.innerHTML='<span style="color:'+lgColor('success')+'">✓ 运行中</span>';
+            else rEl.innerHTML='<span style="color:'+lgColor('danger')+'">✗ 未运行</span>';
         }else{
-            rEl.innerHTML='<span style="color:#999">未启用</span>';
+            rEl.innerHTML='<span style="color:'+lgColor('muted')+'">未启用</span>';
         }
         document.getElementById('lg-banned-count').textContent=(d.banned_total!=null)?d.banned_total:(d.banned||[]).length;
         document.getElementById('lg-watching-count').textContent=(d.watching_total!=null)?d.watching_total:(d.watching||[]).length;
@@ -353,7 +360,7 @@ function lgApplyStatus(d){
                 var b=d.banned[i];
                 h+='<tr>';
                 h+='<td><code class="lg-ip lg-ip-danger">'+lgEscHtml(b.ip)+'</code></td>';
-                h+='<td id="lg-geo-'+i+'"><span style="color:#999">查询中...</span></td>';
+                h+='<td id="lg-geo-'+i+'"><span style="color:'+lgColor('muted')+'">查询中...</span></td>';
                 h+='<td>'+fmtDuration(b.remaining)+'</td>';
                 h+='<td><button class="lg-unban" onclick="lgUnban(\''+b.ip+'\',this)">解封</button></td>';
                 h+='</tr>';
